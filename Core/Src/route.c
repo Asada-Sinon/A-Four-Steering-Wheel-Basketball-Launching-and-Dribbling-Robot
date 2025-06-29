@@ -448,12 +448,19 @@ PID_Struct Stop_Area_Slide_PID_Calculate(PID_Struct *PID, float Target, float Me
 }
 /*********************************************************************************
  * @name   Normalize_Angle
- * @brief  角度归一化到 [-180, 180] 度范围
+ * @brief  角度归一化到 [-180, 180] 度范围（适配雷达回传范围）
  * @param  angle: 输入角度
  * @retval 归一化后的角度
  *********************************************************************************/
 static float Normalize_Angle(float angle)
 {
+    // 处理NaN和无穷大
+    if (isnan(angle) || isinf(angle))
+    {
+        return 0.0f;
+    }
+    
+    // 将角度归一化到 [-180, 180] 范围
     while (angle > 180.0f) 
         angle -= 360.0f;
     while (angle < -180.0f) 
@@ -463,20 +470,35 @@ static float Normalize_Angle(float angle)
 
 /*********************************************************************************
  * @name   Calculate_Angle_Difference
- * @brief  计算角度差（考虑最短路径）
+ * @brief  计算角度差（考虑最短路径，处理-180/+180突变）
  * @param  target: 目标角度
  * @param  current: 当前角度
  * @retval 角度差（带符号，正值表示逆时针）
  *********************************************************************************/
 static float Calculate_Angle_Difference(float target, float current)
 {
+    // 确保输入角度在有效范围内
+    target = Normalize_Angle(target);
+    current = Normalize_Angle(current);
+    
     float diff = target - current;
-    return Normalize_Angle(diff);
+    
+    // 处理跨越-180/+180边界的情况，选择最短路径
+    if (diff > 180.0f)
+    {
+        diff -= 360.0f;  // 选择顺时针方向
+    }
+    else if (diff < -180.0f)
+    {
+        diff += 360.0f;  // 选择逆时针方向
+    }
+    
+    return diff;
 }
 
 /*********************************************************************************
  * @name   Calculate_Absolute_Angle_Distance
- * @brief  计算绝对角度距离（用于区域判断）
+ * @brief  计算绝对角度距离（用于区域判断，处理突变问题）
  * @param  angle1: 角度1
  * @param  angle2: 角度2
  * @retval 绝对角度距离
@@ -485,6 +507,217 @@ static float Calculate_Absolute_Angle_Distance(float angle1, float angle2)
 {
     return fabsf(Calculate_Angle_Difference(angle1, angle2));
 }
+
+/*********************************************************************************
+ * @name   Safe_Angle_Normalization
+ * @brief  安全的角度归一化，包含输入验证
+ * @param  angle: 输入角度
+ * @retval 归一化后的安全角度
+ *********************************************************************************/
+static float Safe_Angle_Normalization(float angle)
+{
+    // 检查输入是否为有效数值
+    if (isnan(angle) || isinf(angle))
+    {
+        return 0.0f;
+    }
+    
+    // 限制输入范围，防止极值计算
+    if (angle > 36000.0f || angle < -36000.0f)
+    {
+        // 如果角度超出合理范围，取模后归一化
+        angle = fmodf(angle, 360.0f);
+    }
+    
+    return Normalize_Angle(angle);
+}
+
+/*********************************************************************************
+ * @name   Handle_Angle_Transition
+ * @brief  处理角度过渡，防止路径规划中的角度跳变
+ * @param  current_angle: 当前角度
+ * @param  target_angle: 目标角度
+ * @param  last_angle: 上一次的角度（用于检测跳变）
+ * @retval 处理后的目标角度
+ *********************************************************************************/
+static float Handle_Angle_Transition(float current_angle, float target_angle, float last_angle)
+{
+    // 归一化所有输入角度
+    current_angle = Safe_Angle_Normalization(current_angle);
+    target_angle = Safe_Angle_Normalization(target_angle);
+    last_angle = Safe_Angle_Normalization(last_angle);
+    
+    // 检测当前角度是否发生了跳变（超过阈值认为是跳变而非正常旋转）
+    float angle_jump_threshold = 150.0f; // 角度跳变阈值
+    float current_diff = Calculate_Angle_Difference(current_angle, last_angle);
+    
+    if (fabsf(current_diff) > angle_jump_threshold)
+    {
+        // 检测到角度跳变，可能是从+180跳到-180或反之
+        // 保持目标角度不变，让PID慢慢收敛
+        return target_angle;
+    }
+    
+    return target_angle;
+}
+/*********************************************************************************
+ * @name   Calculate_Angle_Error_With_Direction
+ * @brief  计算角度误差，始终选择最短路径，返回带方向的误差
+ * @param  target: 目标角度 [-180, 180]
+ * @param  current: 当前角度 [-180, 180]
+ * @retval 角度误差（正值：需要逆时针，负值：需要顺时针）
+ *********************************************************************************/
+static float Calculate_Angle_Error_With_Direction(float target, float current)
+{
+    // 归一化到 [-180, 180]
+    target = Normalize_Angle(target);
+    current = Normalize_Angle(current);
+    
+    float error = target - current;
+    
+    // 选择最短路径
+    if (error > 180.0f)
+    {
+        error -= 360.0f;  // 实际应该顺时针转
+    }
+    else if (error < -180.0f)
+    {
+        error += 360.0f;  // 实际应该逆时针转
+    }
+    
+    return error;
+}
+
+/*********************************************************************************
+ * @name   Is_Angle_Reached
+ * @brief  判断角度是否已经到达目标（考虑容差）
+ * @param  target: 目标角度
+ * @param  current: 当前角度
+ * @param  tolerance: 容差（度）
+ * @retval true: 已到达, false: 未到达
+ *********************************************************************************/
+static bool Is_Angle_Reached(float target, float current, float tolerance)
+{
+    float error = Calculate_Angle_Error_With_Direction(target, current);
+    return fabsf(error) <= tolerance;
+}
+
+/*********************************************************************************
+ * @name   Calculate_Angle_Progress
+ * @brief  计算角度旋转的进度 [0, 1]
+ * @param  start: 起始角度
+ * @param  target: 目标角度  
+ * @param  current: 当前角度
+ * @retval 进度值 [0, 1]，0表示刚开始，1表示已到达
+ *********************************************************************************/
+static float Calculate_Angle_Progress(float start, float target, float current)
+{
+    // 计算总的角度变化量（最短路径）
+    float total_change = Calculate_Angle_Error_With_Direction(target, start);
+    
+    // 如果目标角度变化很小，认为已经完成
+    if (fabsf(total_change) < 0.1f)
+    {
+        return 1.0f;
+    }
+    
+    // 计算当前已完成的角度变化量
+    float current_change = Calculate_Angle_Error_With_Direction(current, start);
+    
+    // 确保方向一致
+    if ((total_change > 0 && current_change < 0) || (total_change < 0 && current_change > 0))
+    {
+        // 方向相反，说明还没开始正确的旋转
+        return 0.0f;
+    }
+    
+    // 计算进度比例
+    float progress = current_change / total_change;
+    
+    // 限制在 [0, 1.2] 范围内（允许少量超调）
+    return Clamp_Float(progress, 0.0f, 1.2f);
+}
+
+/*********************************************************************************
+ * @name   Advanced_Angle_Control
+ * @brief  改进的角度控制算法
+ * @param  Status: 路径状态结构体
+ * @param  start_angle: 起始角度
+ * @param  target_angle: 目标角度
+ * @param  current_angle: 当前角度
+ * @retval 计算得到的角速度
+ *********************************************************************************/
+static float Advanced_Angle_Control(Route_STU *Status, float start_angle, float target_angle, float current_angle)
+{
+    // 计算当前角度误差（带方向）
+    Status->Parameter.Current_Angle_Error = Calculate_Angle_Error_With_Direction(target_angle, current_angle);
+    Status->Parameter.Abs_Angle_Error = fabsf(Status->Parameter.Current_Angle_Error);
+    
+    // 计算旋转进度
+    float progress = Calculate_Angle_Progress(start_angle, target_angle, current_angle);
+    
+    // 计算总的角度变化量（用于设置区域大小）
+    float total_angle_change = fabsf(Calculate_Angle_Error_With_Direction(target_angle, start_angle));
+    Status->Parameter.Total_Angle_Change = total_angle_change;
+    
+    // 动态计算区域大小（基于总角度变化量）
+    float dynamic_stop_area = fminf(Status->Parameter.Angle_Stop_Area, total_angle_change * 0.1f);
+    float dynamic_slow_area = fminf(total_angle_change * Status->Parameter.Slow_W_Rate, total_angle_change * 0.5f);
+    float dynamic_speedup_area = total_angle_change * Status->Parameter.Speedup_W_Rate;
+    
+    // 更新到结构体中（用于调试）
+    Status->Parameter.Angle_Distance_Traveled = progress * total_angle_change;
+    
+    float target_w_speed = 0.0f;
+    
+    // 停止区：使用PID精确控制
+    if (Status->Parameter.Abs_Angle_Error <= dynamic_stop_area)
+    {
+        PID_Calculate_Positional(&Line_AnglePID, Status->Parameter.Current_Angle_Error, 0);
+        target_w_speed = Clamp_Float(Line_AnglePID.Output, -800.0f, 800.0f);
+    }
+    // 减速区：根据剩余角度减速
+    else if (Status->Parameter.Abs_Angle_Error <= dynamic_slow_area)
+    {
+        float slow_ratio = Status->Parameter.Abs_Angle_Error / dynamic_slow_area;
+        slow_ratio = Clamp_Float(slow_ratio, 0.0f, 1.0f);
+        
+        float speed_magnitude = Fitting_Function(slow_ratio) * Status->Parameter.Max_W_Speed;
+        target_w_speed = (Status->Parameter.Current_Angle_Error >= 0) ? speed_magnitude : -speed_magnitude;
+    }
+    // 加速区：根据进度加速
+    else if (progress < (dynamic_speedup_area / total_angle_change))
+    {
+        float speedup_ratio = progress / (dynamic_speedup_area / total_angle_change);
+        speedup_ratio = Clamp_Float(speedup_ratio, 0.0f, 1.0f);
+        
+        float speed_magnitude = Status->Parameter.Start_W_Speed + 
+                               Fitting_Function(speedup_ratio) * (Status->Parameter.Max_W_Speed - Status->Parameter.Start_W_Speed);
+        target_w_speed = (Status->Parameter.Current_Angle_Error >= 0) ? speed_magnitude : -speed_magnitude;
+    }
+    // 恒速区：最大速度
+    else
+    {
+        target_w_speed = (Status->Parameter.Current_Angle_Error >= 0) ? Status->Parameter.Max_W_Speed : -Status->Parameter.Max_W_Speed;
+    }
+    
+    // 错误检测：如果进度超过120%，认为控制有误
+    if (progress > 1.2f)
+    {
+        Status->Flag.W_Error = ENABLE;
+        // 使用PID拉回
+        PID_Calculate_Positional(&Line_AnglePID, Status->Parameter.Current_Angle_Error, 0);
+        target_w_speed = Clamp_Float(Line_AnglePID.Output, -400.0f, 400.0f);
+    }
+    else
+    {
+        Status->Flag.W_Error = DISABLE;
+    }
+    
+    // 最终限幅
+    return Clamp_Float(target_w_speed, -VW_MAX_LIMIT, VW_MAX_LIMIT);
+}
+
 /*********************************************************************************
  * @name 	Line
  * @brief: 直线路径规划，使用的时候不调用它，调用Chassis_Line_Route
@@ -513,33 +746,16 @@ void Line(Route_STU *Status)
     // 此时已经换到线坐标系下，计算到目标点的距离就是X坐标
     Status->Parameter.Distance = Status->Coordinate_System.Line_Target_Position.X;
     
-    // 更新初始角度，当前路径初始角度为上一段路径的目标角度
-    Status->Coordinate_System.Start_Position.W = Status->Coordinate_System.Target_Position.W;
+    // 安全地归一化起始角度和目标角度到 [-180, 180] 范围
+    Status->Coordinate_System.Start_Position.W = Normalize_Angle(Status->Coordinate_System.Start_Position.W);
+    Status->Coordinate_System.Target_Position.W = Normalize_Angle(Status->Coordinate_System.Target_Position.W);
     
-    // 计算绝对目标角度，初始角度+要转的角度
-    //Angle_Aim = Status->Coordinate_System.Start_Position.W + Status->Parameter.Angle_Rotate_Sum;
-    // 目标角度已经是绝对角度，直接使用（雷达直接回传绝对角度，上面码盘是时代的眼泪）
+    // 目标角度已经是绝对角度，直接使用（雷达直接回传绝对角度）
     Angle_Aim = Status->Coordinate_System.Target_Position.W;
     
     // 计算路径加速区和减速区大小 (停止区直接给参数)
     Status->Parameter.Line_Route_Slow_Area = Status->Parameter.Slow_Rate * Status->Parameter.Distance;
     Status->Parameter.Line_Route_Speedup_Area = Status->Parameter.Speedup_Rate * Status->Parameter.Distance;
-    
-    // 使用安全的角度区间计算，防止极小值和除零问题
-    // 计算总的角度变化量（用于区域计算） - 基于绝对角度差值
-    Status->Parameter.Total_Angle_Change = Calculate_Absolute_Angle_Distance(
-        Status->Coordinate_System.Start_Position.W, 
-        Status->Coordinate_System.Target_Position.W);
-    
-    // 计算角速度的加速区减速区 - 使用安全计算函数
-    Status->Parameter.Angle_Slow_Area = Safe_Angle_Area_Calculate(
-        Status->Parameter.Total_Angle_Change,
-        Status->Parameter.Slow_W_Rate,
-        ANGLE_MIN_AREA_PROTECTION);
-    Status->Parameter.Angle_Speedup_Area = Safe_Angle_Area_Calculate(
-        Status->Parameter.Total_Angle_Change,
-        Status->Parameter.Speedup_W_Rate,
-        ANGLE_MIN_AREA_PROTECTION);
     
     // 清pid避免上一段路径的误差积累
     PID_Clear(&Line_AdjustPID);
@@ -558,98 +774,23 @@ void Line(Route_STU *Status)
         // 更新世界坐标系下坐标，读雷达回传后处理过的值
         World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
         World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
-        World_Coordinate_System_NowPos.W = Computer_Vision_Data.LiDAR.W;
-        // 这里注释掉了码盘的回传改用雷达的回传
-        //  World_Coordinate_System_NowPos.X = Disk_Encoder.Cod.Chassis_Position_From_Disk.X;
-        //  World_Coordinate_System_NowPos.Y = Disk_Encoder.Cod.Chassis_Position_From_Disk.Y;
-        //  World_Coordinate_System_NowPos.W = Disk_Encoder.Yaw.World_Rotation_Angle;
+        World_Coordinate_System_NowPos.W = Normalize_Angle(Computer_Vision_Data.LiDAR.W);  // 确保在 [-180, 180] 范围内
         
         // 更新线坐标系下坐标
         Status->Coordinate_System.Line_Now_Position = Position_Coordinate_Transformation(&World_Coordinate_System_NowPos, &Status->Coordinate_System.Start_Position, Line_Angle);
         
         /*===============================================================================================================
-                                                角速度计算部分（基于绝对角度）
+                                                角速度计算部分（使用改进的角度控制算法）
         ===============================================================================================================*/
-        // 计算角度误差（带方向）- 使用结构体变量便于调试
-        // 正值表示需要逆时针旋转，负值表示需要顺时针旋转
-        Status->Parameter.Current_Angle_Error = Calculate_Angle_Difference(Angle_Aim, World_Coordinate_System_NowPos.W);
-        Status->Parameter.Abs_Angle_Error = fabsf(Status->Parameter.Current_Angle_Error);
+        Status->Coordinate_System.Line_Target_V.Vw = Advanced_Angle_Control(
+            Status,
+            Status->Coordinate_System.Start_Position.W,
+            Angle_Aim,
+            World_Coordinate_System_NowPos.W
+        );
         
-        // 计算已转过的角度距离 - 使用结构体变量便于调试
-        // 用于判断当前处于加速区/恒速区/减速区
-        Status->Parameter.Angle_Distance_Traveled = Calculate_Absolute_Angle_Distance(World_Coordinate_System_NowPos.W, Status->Coordinate_System.Start_Position.W);
-        
-        // 判断是否需要角度错误标志（修改后的逻辑，基于绝对角度）
-        // 允许10%的超调，超过则认为角度控制有误
-        if (Status->Parameter.Angle_Distance_Traveled > (Status->Parameter.Total_Angle_Change * 1.1f))
-        {
-            Status->Flag.W_Error = ENABLE;
-        }
-        else
-        {
-            Status->Flag.W_Error = DISABLE;
-        }
-        
-        /*---------------------------------------------------------------------------------------------------------------
-                                                角速度分区控制逻辑
-        ---------------------------------------------------------------------------------------------------------------*/
-        // 停止区 - 修正PID输入，先判断停止区，为了保持平移角度稳定
-        if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Stop_Area || Status->Flag.W_Error)
-        {
-            // 使用结构体中的角度误差进行PID控制 - 精确角度控制
-            PID_Calculate_Positional(&Line_AnglePID, Status->Parameter.Current_Angle_Error, 0);
-            
-            // 添加PID输出限幅，防止角速度过大
-            if (Line_AnglePID.Output > 800.0f)
-                Line_AnglePID.Output = 800.0f;
-            else if (Line_AnglePID.Output < -800.0f)
-                Line_AnglePID.Output = -800.0f;
-            Status->Coordinate_System.Line_Target_V.Vw = Line_AnglePID.Output;
-        }
-        // 加速区 - 使用安全除法进行角速度计算
-        else if (Status->Parameter.Angle_Distance_Traveled < Status->Parameter.Angle_Speedup_Area)
-        {
-            // 计算加速比例 - 使用安全除法防止除零
-            float ratio = Safe_Division(Status->Parameter.Angle_Distance_Traveled, Status->Parameter.Angle_Speedup_Area, ANGLE_MIN_AREA_PROTECTION);
-            ratio = Clamp_Float(ratio, 0.0f, 1.0f); // 确保比例在合理范围内
-
-            // 使用拟合函数计算平滑加速的目标角速度
-            float target_w_speed = Status->Parameter.Start_W_Speed +
-                Fitting_Function(ratio) * (Status->Parameter.Max_W_Speed - Status->Parameter.Start_W_Speed);
-            
-            // 根据角度误差方向确定速度方向（正误差逆时针，负误差顺时针）
-            Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
-        }
-        // 恒速区 - 修正恒速区判断条件
-        else if (Status->Parameter.Angle_Distance_Traveled >= Status->Parameter.Angle_Speedup_Area &&
-                 Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Slow_Area)
-        {
-            // 根据角度误差方向确定速度方向 - 最大角速度运行
-            Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? Status->Parameter.Max_W_Speed : -Status->Parameter.Max_W_Speed;
-        }
-        // 减速区 - 接近目标角度时平滑减速
-        else if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Slow_Area &&
-                 Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Stop_Area)
-        {
-            // 使用安全除法计算减速比例
-            float ratio = Safe_Division(Status->Parameter.Abs_Angle_Error, Status->Parameter.Angle_Slow_Area, ANGLE_MIN_AREA_PROTECTION);
-            ratio = Clamp_Float(ratio, 0.0f, 1.0f);
-
-            // 使用拟合函数计算平滑减速的目标角速度
-            float target_w_speed = Fitting_Function(ratio) * Status->Parameter.Max_W_Speed;
-            
-            // 根据角度误差方向确定速度方向
-            Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
-        }
-
-        // 添加最终安全限幅 - 防止角速度过大损坏设备
-        Status->Coordinate_System.Line_Target_V.Vw = Clamp_Float(
-            Status->Coordinate_System.Line_Target_V.Vw,
-            -VW_MAX_LIMIT,
-            VW_MAX_LIMIT);
-            
         /*===============================================================================================================
-                                                线速度计算部分
+                                                线速度计算部分（保持原有逻辑）
         ===============================================================================================================*/
         // 加速区内线速度计算 - 路径起始段平滑加速
         if ((Status->Coordinate_System.Line_Now_Position.X) < Status->Parameter.Line_Route_Speedup_Area)
@@ -723,7 +864,6 @@ void Line(Route_STU *Status)
                                                 路径完成判断部分
         ===============================================================================================================*/
         // 判断路径是否走完
-        // 这里死区由3改为5，原因是雷达本身有数字跳变，为最大限度防止路径卡死
         // 同时判断位置误差、角度误差和电机转速，确保真正停稳
         if (Status->Coordinate_System.Line_Target_Position.X - Status->Coordinate_System.Line_Now_Position.X < 10 &&
                 Status->Parameter.Abs_Angle_Error < 3 &&
@@ -764,14 +904,14 @@ void Chassis_Line_Route(float Target_X, float Target_Y, float Target_W, float St
     Order_To_Subcontroller.Wheel_Break = 0;
     Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
     Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
-    Route_Status.Coordinate_System.Start_Position.W = Computer_Vision_Data.LiDAR.W;
+    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
     // 这里注释掉了码盘的回传改用雷达的回传
     // Route_Status.Coordinate_System.Start_Position.X = Disk_Encoder.Cod.Chassis_Position_From_Disk.X;
     // Route_Status.Coordinate_System.Start_Position.Y = Disk_Encoder.Cod.Chassis_Position_From_Disk.Y;
     // Route_Status.Coordinate_System.Start_Position.W = Disk_Encoder.Yaw.World_Rotation_Angle;
     Route_Status.Coordinate_System.Target_Position.X = Target_X;
     Route_Status.Coordinate_System.Target_Position.Y = Target_Y;
-    Route_Status.Coordinate_System.Target_Position.W = Target_W; // 直接使用绝对角度，不再使用Angle_Rotate_Sum
+    Route_Status.Coordinate_System.Target_Position.W = Safe_Angle_Normalization(Target_W); // 直接使用绝对角度，确保在有效范围内
 
     Route_Status.Parameter.Start_Speed = Start_Speed;
     Route_Status.Parameter.Max_Speed = Max_Speed;
