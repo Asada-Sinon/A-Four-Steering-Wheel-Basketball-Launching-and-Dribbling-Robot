@@ -34,7 +34,7 @@ typedef struct
     struct // 状态结构体
     {
         FunctionalState Work_Start;      // 标志位，用于判断路径是否结束
-        FunctionalState W_Error;     // 只命令车平移时，防止进入最大速度区域
+        FunctionalState W_Error;         // 只命令车平移时，防止进入最大速度区域
         FunctionalState Tangent;         // 是否沿切线，enable为沿切线
         CIRCLE_TYPE_ENUM Circle_Type;    // 选择顺时针圆弧、逆时针圆弧
         FunctionalState Robot_Direction; // 用于圆弧路径里面车头方向是否一直沿切线，enable为沿切线，disable为不变
@@ -51,12 +51,12 @@ typedef struct
         Coordinate_Position_Struct Line_Target_Position; // 线坐标系下目标位置
         Coordinate_Speed_Struct Line_Target_V;           // 线坐标系下目标速度
 
-        Coordinate_Position_Struct World_HeartPos; // 圆心
-        Polar_Coordinates_Struct Polar_NowPos;     // 极坐标系下机器人当前位置（当前位置与圆心连线为极轴）
-        Coordinate_Speed_Struct Polar_Target_V;    // 极坐标系下机器人速度
-        Coordinate_Speed_Struct World_Coordinate_System_Target_V;  // 世界坐标系下目标速度
-        Coordinate_Speed_Struct Robot_Coordinate_System_Target_V;  // 车身坐标系下目标速度
-        Coordinate_Speed_Struct Robot_Coordinate_System_V;         // 路径计算出的车身速度，用于车轮速度分配
+        Coordinate_Position_Struct World_HeartPos;                // 圆心
+        Polar_Coordinates_Struct Polar_NowPos;                    // 极坐标系下机器人当前位置（当前位置与圆心连线为极轴）
+        Coordinate_Speed_Struct Polar_Target_V;                   // 极坐标系下机器人速度
+        Coordinate_Speed_Struct World_Coordinate_System_Target_V; // 世界坐标系下目标速度
+        Coordinate_Speed_Struct Robot_Coordinate_System_Target_V; // 车身坐标系下目标速度
+        Coordinate_Speed_Struct Robot_Coordinate_System_V;        // 路径计算出的车身速度，用于车轮速度分配
     } Coordinate_System;
 
     struct // 参数结构体
@@ -74,7 +74,7 @@ typedef struct
         float Start_W_Speed;      // 启动角速度
         float Max_W_Speed;        // 最大角速度
         float End_W_Speed;        // 末端角速度
-        float Angle_Rotate_Sum;   // 要转的角度（不是目标绝对角度）
+        // float Angle_Rotate_Sum;   // 要转的角度（不是目标绝对角度）（时代的眼泪了，码盘时期无法读出绝对角度）
 
         float Target_Angle_Sum; // 目标累加圆心角
         float Now_Angle_Sum;    // 当前累加圆心角
@@ -86,6 +86,12 @@ typedef struct
         float Slow_W_Rate;    // 角速度减速区间比例
         float Distance;       // 到目标点的距离
 
+        // 新增调试变量
+        float Total_Angle_Change;      // 总角度变化量（用于调试）
+        float Current_Angle_Error;     // 当前角度误差（带符号，用于调试）
+        float Abs_Angle_Error;         // 当前角度绝对误差（用于调试）
+        float Angle_Distance_Traveled; // 已转过的角度距离（用于调试）
+        
         float Kp;
         float Kd;
     } Parameter;
@@ -104,26 +110,27 @@ typedef struct
 } Parameter_Of_Route_With_Automatic_Aiming; // 用于Calculate_Nearest_Vision_Point函数，用来给不同距离的不同速度赋值
 
 // 定义路径点结构体，包含所有路径参数
-typedef struct {
-    int X;           // X坐标
-    int Y;           // Y坐标
-    int W;           // 角度
-    int start_speed; // 起始速度
-    int max_speed;   // 最大速度
-    int end_speed;   // 结束速度
-    int min_speed;   // 最小速度
-    int max_w;       // 最大角速度
-    float up_rate;   // 加速比率
-    float down_rate; // 减速比率
-    int stop_area;   // 停止区域
+typedef struct
+{
+    int X;              // X坐标
+    int Y;              // Y坐标
+    int W;              // 角度
+    int start_speed;    // 起始速度
+    int max_speed;      // 最大速度
+    int end_speed;      // 结束速度
+    int min_speed;      // 最小速度
+    int max_w;          // 最大角速度
+    float up_rate;      // 加速比率
+    float down_rate;    // 减速比率
+    int stop_area;      // 停止区域
     bool needs_dribble; // 是否需要运球
     float Kp;
     float Kd;
 } RoutePoint;
 
 extern Coordinate_Position_Struct World_Coordinate_System_NowPos; // 世界坐标系下当前位置
-extern Coordinate_Position_Struct Pre_Basket_Position; // 预选赛世界坐标系篮筐位置
-extern Coordinate_Position_Struct Basket_Position;     // 正赛世界坐标系篮筐位置
+extern Coordinate_Position_Struct Pre_Basket_Position;            // 预选赛世界坐标系篮筐位置
+extern Coordinate_Position_Struct Basket_Position;                // 正赛世界坐标系篮筐位置
 
 float Calculate_Line_Distance(Coordinate_Position_Struct Start_Point, Coordinate_Position_Struct End_Point);
 float Calculate_Line_Angle(Coordinate_Position_Struct Start_Point, Coordinate_Position_Struct End_Point);

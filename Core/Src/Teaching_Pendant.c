@@ -357,8 +357,8 @@ void Enhanced_Teaching_Pendant_Init(void)
 
     // 配置双重加速度限制参数
     // 加速限制 - 相对保守，保护机械结构
-    enhanced_pendant.accel_config.max_accel_vx = 7000.0f; // X方向加速限制3m/s²
-    enhanced_pendant.accel_config.max_accel_vy = 7000.0f; // Y方向加速限制3m/s²
+    enhanced_pendant.accel_config.max_accel_vx = 8000.0f; // X方向加速限制3m/s²
+    enhanced_pendant.accel_config.max_accel_vy = 8000.0f; // Y方向加速限制3m/s²
     enhanced_pendant.accel_config.max_accel_vw = 3000.0f;  // 角速度加速限制600°/s²
     //111
     // 减速限制 - 相对激进，保证响应性
