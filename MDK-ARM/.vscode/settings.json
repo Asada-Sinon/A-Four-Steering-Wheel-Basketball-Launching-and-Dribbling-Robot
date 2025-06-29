@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "vesc.h": "c",
+        "return_data_process.h": "c",
+        "pid.h": "c",
+        "route.h": "c",
+        "usart.h": "c",
+        "disk.h": "c",
+        "mycan.h": "c",
+        "typeinfo": "c",
+        "armdsp.h": "c",
+        "arm_math.h": "c"
+    }
+}
