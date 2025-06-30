@@ -131,7 +131,7 @@ typedef struct
 extern Coordinate_Position_Struct World_Coordinate_System_NowPos; // 世界坐标系下当前位置
 extern Coordinate_Position_Struct Pre_Basket_Position;            // 预选赛世界坐标系篮筐位置
 extern Coordinate_Position_Struct Basket_Position;                // 正赛世界坐标系篮筐位置
-
+extern Route_STU Route_Status; // 路径状态结构体
 float Calculate_Line_Distance(Coordinate_Position_Struct Start_Point, Coordinate_Position_Struct End_Point);
 float Calculate_Line_Angle(Coordinate_Position_Struct Start_Point, Coordinate_Position_Struct End_Point);
 void Route_Init(void);

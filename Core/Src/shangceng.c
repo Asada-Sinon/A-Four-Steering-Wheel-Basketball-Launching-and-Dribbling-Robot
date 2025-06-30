@@ -7,10 +7,11 @@
 #include "Teaching_Pendant.h"
 #include "A1_Motor.h"
 #include "Computer_Vision.h"
+#include "route.h"
 
 #define A1_MOTOR_POSITION_BOTTOM 215		// 丝杠拉到最下面的位置
 #define A1_MOTOR_POSITION_TOP -7			// 丝杠拉到最上面扳机扣上的位置
-#define A1_MOTOR_POSITION_THREE_POINTE 170 // 丝杠三分线位置
+#define A1_MOTOR_POSITION_THREE_POINTE 50 // 丝杠三分线位置
 
 Motor_Struct ShangCeng_motor[4]; // 上层电机，0是运球左侧2006，1是运球右侧2006，2是相机2006，3是扳机3508
 // 0是运球左侧2006
@@ -87,6 +88,8 @@ void ShangCeng_Init()
 	{//上电让丝杠上升去找光电门
 		g_a1motor.command.velocity = -20;
 	}
+	A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
+	Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
 }
 
 /**
@@ -168,12 +171,12 @@ uint8_t Reload(void)
 		Trigger_Angle = Trigger_ANGLE_LOCK;
 		osDelay(2);
 	}
-
-	while (Judge_A1_Position(A1_MOTOR_POSITION_THREE_POINTE, 0.1))
-	{
-		A1_Angle_I_Want = A1_MOTOR_POSITION_THREE_POINTE;
-		osDelay(2);
-	}
+	//加气缸加速的话，代码写在这里
+	// while (Judge_A1_Position(A1_MOTOR_POSITION_THREE_POINTE, 0.1))
+	// {
+	// 	A1_Angle_I_Want = A1_MOTOR_POSITION_THREE_POINTE;
+	// 	osDelay(2);
+	// }
 	return 1;
 }
 
@@ -228,24 +231,20 @@ void Calculate_Fire_Position(uint8_t competition_type)
  * @return  uint8_t 1:开火完成
  *********************************************************************************/
 extern uint8_t Reload_Flag; // 外部变量，表示是否需要换弹
-uint8_t Fire(void)
+uint8_t Fire()
 {
-	int32_t Angle_D = ABSint32(ShangCeng_motor[3].Angle_Sum) - ABSint32(Trigger_ANGLE_FIRE);
-	// 先把轮子锁了
-	Order_To_Subcontroller.Wheel_Break = 1;
+	Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0;
+	Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0;
+	Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0; // 停止指令
+	// 不是靠这里拉，这里只是防止在开火的时候丝杠没到位就开始发射
 	while (Judge_A1_Position(A1_Angle_I_Want, 0.1))
 	{
 		// 丝杠没到位就直接卡死在这里
 		osDelay(2);
 	}
-
-	while (Angle_D > 50)
-	{
-		// 确保开完火，车再动
-		Trigger_Angle = Trigger_ANGLE_FIRE; // 扳机拉到开火位置
-		osDelay(2);
-	}
-	Order_To_Subcontroller.Wheel_Break = 0; // 开火后解锁轮子
+	osDelay(500); // 等待丝杠到位
+	Trigger_Angle = Trigger_ANGLE_FIRE; // 扳机拉到开火位置
+	osDelay(500); // 等待扳机到位
 	Reload_Flag = 1;						// 开火后需要换弹
 	return 1;								// 开火完成
 }

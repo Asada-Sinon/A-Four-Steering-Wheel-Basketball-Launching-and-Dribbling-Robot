@@ -351,7 +351,7 @@ void Enhanced_Teaching_Pendant_Init(void)
     // 配置非线性映射参数
     enhanced_pendant.mapping_config.max_speed_vx = 15000.0f;      // X方向最大8m/s
     enhanced_pendant.mapping_config.max_speed_vy = 15000.0f;      // Y方向最大8m/s
-    enhanced_pendant.mapping_config.max_speed_vw = 1500.0f;       // 角速度最大1500°/s
+    enhanced_pendant.mapping_config.max_speed_vw = 2500.0f;       // 角速度最大1500°/s
     enhanced_pendant.mapping_config.deadzone_threshold = 0.08f;   // 8%死区
     enhanced_pendant.mapping_config.nonlinear_power = 2.2f;       // 2.2次方映射
     enhanced_pendant.mapping_config.enable_smooth_transition = 1; // 启用平滑过渡
@@ -685,5 +685,6 @@ void HT10A_process(uint8_t buffer[30])
     // 旋钮[-8000,8000]
     Teaching_Pendant_Data.switch5 = (_channels[8] - 992) * 10;
     Teaching_Pendant_Data.switch6 = (_channels[9] - 992) * 10;
+    //处理摇杆的原始数据
     Teaching_Pendant_Data.Joystick_V = Get_Enhanced_Speed_From_Teaching_Pendant();
 }

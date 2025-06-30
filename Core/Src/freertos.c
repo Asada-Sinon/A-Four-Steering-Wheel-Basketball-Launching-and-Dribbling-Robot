@@ -77,30 +77,30 @@ extern Route_STU Route_Status;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "defaultTask",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for Route */
 osThreadId_t RouteHandle;
 const osThreadAttr_t Route_attributes = {
-  .name = "Route",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "Route",
+    .stack_size = 256 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for Shoot */
 osThreadId_t ShootHandle;
 const osThreadAttr_t Shoot_attributes = {
-  .name = "Shoot",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Shoot",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for Reload */
 osThreadId_t ReloadHandle;
 const osThreadAttr_t Reload_attributes = {
-  .name = "Reload",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "Reload",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,11 +116,12 @@ void ReloadTask(void *argument);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
-void MX_FREERTOS_Init(void) {
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
+void MX_FREERTOS_Init(void)
+{
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -161,7 +162,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
-
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -208,10 +208,6 @@ void StartDefaultTask(void *argument)
     // }
     // else
     // {
-    // 手动路径相关
-    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
-    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
-    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
     // }
     // /*===================================================================================================================
     //                 车身自瞄，车身自瞄期间，车的朝向只能能处于[-90, 90]度之间（即只能朝向对面半场）
@@ -343,13 +339,20 @@ void RoutTask(void *argument)
   for (;;)
   {
     labiao(2);
+    // 手动路径相关
+    if (Teaching_Pendant_Data.Automatic_Switch == 1)
+    {
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+    }
     // 检查是否到两个视觉识别点的函数，需要一直跑来检测
     Check_Near_Vision_Points(&Vision_Point_Flag, 20);
-    //Dribble_Pre_Competition();
-    // Dribble_Twice()
+    // Dribble_Pre_Competition();
+    //  Dribble_Twice()
     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-    //Chassis_Line_Route(2458, -2204, -90, 1500, 3000, 1700, 50, 500, 0.01f, 0.6f, 100, 25, 10);
-    // FDCAN_Send_Data(&hfdcan1, 0x03F, Can_2_Data, &i, &Order_To_Subcontroller);
+    // Chassis_Line_Route(2458, -2204, -90, 1500, 3000, 1700, 50, 500, 0.01f, 0.6f, 100, 25, 10);
+    //  FDCAN_Send_Data(&hfdcan1, 0x03F, Can_2_Data, &i, &Order_To_Subcontroller);
     /*===================================================================================================================
                                                   投球预选赛相关
     =====================================================================================================================*/
@@ -432,4 +435,3 @@ void ReloadTask(void *argument)
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-
