@@ -4,8 +4,9 @@
 #include "route.h"
 #include "math.h"
 
-Teaching_Pendant_Data_Struct Teaching_Pendant = {.Reset_Confirm = 1, .Automatic_Switch = 1};
-Teaching_Pendant_Data_Struct Teaching_Pendant_Data;
+uint8_t Teaching_Pendant_buffer[30];
+remote_control Teaching_Pendant = {.Death = -1, .Automatic_Switch = -1};//程序里面可以直接被刷掉的标志位
+remote_control Teaching_Pendant_Data;//手柄直接的数据
 Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant = {0, 0, 0};
 
 // 增强版手柄处理器
@@ -105,20 +106,20 @@ static uint8_t Detect_Motion_State(float target, float current, float stop_thres
     {
         return 1; // 减速（制动）
     }
-    
+
     // 2. 方向改变检测 - 当前和目标速度符号相反且都不接近零
-    if ((target > stop_threshold && current < -stop_threshold) || 
+    if ((target > stop_threshold && current < -stop_threshold) ||
         (target < -stop_threshold && current > stop_threshold))
     {
         return 1; // 减速（方向改变）
     }
-    
+
     // 3. 同向减速检测 - 目标速度绝对值小于当前速度绝对值
     if (fabsf(target) < fabsf(current) - stop_threshold) // 加入阈值避免抖动
     {
         return 1; // 减速（同向减速）
     }
-    
+
     // 其他情况为加速
     return 0; // 加速
 }
@@ -286,19 +287,19 @@ static float Dual_Speed_Limiter(float target, float current, float max_accel, fl
 {
     // 计算速度差值
     float speed_diff = target - current;
-    
+
     // 如果差值很小，直接返回目标值
     if (fabsf(speed_diff) < 0.1f)
     {
         return target;
     }
-    
+
     // 计算所需的加速度
     float required_accel = fabsf(speed_diff) / dt;
-    
+
     // 使用改进的运动状态检测
     uint8_t is_decelerating = Detect_Motion_State(target, current, 10.0f); // 10mm/s作为停止阈值
-    
+
     if (is_decelerating)
     {
         // === 减速情况：限制减速加速度不要过大 ===
@@ -331,7 +332,7 @@ static float Dual_Speed_Limiter(float target, float current, float max_accel, fl
             }
         }
     }
-    
+
     // 如果加速度在允许范围内，直接返回目标值
     return target;
 }
@@ -345,11 +346,11 @@ void Enhanced_Teaching_Pendant_Init(void)
 {
     // 初始化低通滤波器 (20ms采样周期)
     LPFilter_Init(&enhanced_pendant.filter_magnitude, 0.02f, 4.0f); // 幅值滤波器 - 新增
-    LPFilter_Init(&enhanced_pendant.filter_vw, 0.02f, 12.0f); // 角速度12Hz截止频率
+    LPFilter_Init(&enhanced_pendant.filter_vw, 0.02f, 12.0f);       // 角速度12Hz截止频率
 
     // 配置非线性映射参数
-    enhanced_pendant.mapping_config.max_speed_vx = 15000.0f;       // X方向最大8m/s
-    enhanced_pendant.mapping_config.max_speed_vy = 15000.0f;       // Y方向最大8m/s
+    enhanced_pendant.mapping_config.max_speed_vx = 15000.0f;      // X方向最大8m/s
+    enhanced_pendant.mapping_config.max_speed_vy = 15000.0f;      // Y方向最大8m/s
     enhanced_pendant.mapping_config.max_speed_vw = 1500.0f;       // 角速度最大1500°/s
     enhanced_pendant.mapping_config.deadzone_threshold = 0.08f;   // 8%死区
     enhanced_pendant.mapping_config.nonlinear_power = 2.2f;       // 2.2次方映射
@@ -359,15 +360,15 @@ void Enhanced_Teaching_Pendant_Init(void)
     // 加速限制 - 相对保守，保护机械结构
     enhanced_pendant.accel_config.max_accel_vx = 8000.0f; // X方向加速限制3m/s²
     enhanced_pendant.accel_config.max_accel_vy = 8000.0f; // Y方向加速限制3m/s²
-    enhanced_pendant.accel_config.max_accel_vw = 3000.0f;  // 角速度加速限制600°/s²
-    //111
-    // 减速限制 - 相对激进，保证响应性
+    enhanced_pendant.accel_config.max_accel_vw = 3000.0f; // 角速度加速限制600°/s²
+    // 111
+    //  减速限制 - 相对激进，保证响应性
     enhanced_pendant.accel_config.max_decel_vx = 9999999999.0f; // X方向减速限制6m/s²
     enhanced_pendant.accel_config.max_decel_vy = 9999999999.0f; // Y方向减速限制6m/s²
-    enhanced_pendant.accel_config.max_decel_vw = 6000.0f; // 角速度减速限制1200°/s²
-    
-    enhanced_pendant.accel_config.speed_deadzone = 40.0f;    // 速度死区10mm/s
-    enhanced_pendant.accel_config.control_period = 0.02f;    // 20ms控制周期
+    enhanced_pendant.accel_config.max_decel_vw = 6000.0f;       // 角速度减速限制1200°/s²
+
+    enhanced_pendant.accel_config.speed_deadzone = 40.0f; // 速度死区10mm/s
+    enhanced_pendant.accel_config.control_period = 0.01f; // 20ms控制周期
 
     // 初始化状态
     enhanced_pendant.last_output.Vx = 0.0f;
@@ -377,52 +378,53 @@ void Enhanced_Teaching_Pendant_Init(void)
     enhanced_pendant.last_velocity_angle = 0.0f;
     enhanced_pendant.initialized = 1;
 }
-/*********************************************************************************
- * @name   Vector_To_Polar
- * @brief  将矢量速度转换为极坐标（幅值和角度）
- * @param  vx: X方向速度
- * @param  vy: Y方向速度
- * @param  magnitude: 输出幅值指针
- * @param  angle: 输出角度指针（弧度）
- *********************************************************************************/
-static void Vector_To_Polar(float vx, float vy, float *magnitude, float *angle)
-{
-    *magnitude = sqrtf(vx * vx + vy * vy);
-    *angle = atan2f(vy, vx);
-}
+//时代的眼泪了，原来想用极坐标来分开处理速度角度的，给角度滤波，速度限幅，后来发现直接用矢量速度更好
+// /*********************************************************************************
+//  * @name   Vector_To_Polar
+//  * @brief  将矢量速度转换为极坐标（幅值和角度）
+//  * @param  vx: X方向速度
+//  * @param  vy: Y方向速度
+//  * @param  magnitude: 输出幅值指针
+//  * @param  angle: 输出角度指针（弧度）
+//  *********************************************************************************/
+// static void Vector_To_Polar(float vx, float vy, float *magnitude, float *angle)
+// {
+//     *magnitude = sqrtf(vx * vx + vy * vy);
+//     *angle = atan2f(vy, vx);
+// }
 
-/*********************************************************************************
- * @name   Polar_To_Vector
- * @brief  将极坐标转换为矢量速度
- * @param  magnitude: 幅值
- * @param  angle: 角度（弧度）
- * @param  vx: 输出X方向速度指针
- * @param  vy: 输出Y方向速度指针
- *********************************************************************************/
-static void Polar_To_Vector(float magnitude, float angle, float *vx, float *vy)
-{
-    *vx = magnitude * cosf(angle);
-    *vy = magnitude * sinf(angle);
-}
+// /*********************************************************************************
+//  * @name   Polar_To_Vector
+//  * @brief  将极坐标转换为矢量速度
+//  * @param  magnitude: 幅值
+//  * @param  angle: 角度（弧度）
+//  * @param  vx: 输出X方向速度指针
+//  * @param  vy: 输出Y方向速度指针
+//  *********************************************************************************/
+// static void Polar_To_Vector(float magnitude, float angle, float *vx, float *vy)
+// {
+//     *vx = magnitude * cosf(angle);
+//     *vy = magnitude * sinf(angle);
+// }
 
-/*********************************************************************************
- * @name   Normalize_Angle_Difference
- * @brief  角度差值归一化到±π范围
- * @param  angle_diff: 角度差值（弧度）
- * @retval 归一化后的角度差值
- *********************************************************************************/
-static float Normalize_Angle_Difference(float angle_diff)
-{
-    while (angle_diff > 3.14159265f)
-    {
-        angle_diff -= 2.0f * 3.14159265f;
-    }
-    while (angle_diff < -3.14159265f)
-    {
-        angle_diff += 2.0f * 3.14159265f;
-    }
-    return angle_diff;
-}
+// /*********************************************************************************
+//  * @name   Normalize_Angle_Difference
+//  * @brief  角度差值归一化到±π范围
+//  * @param  angle_diff: 角度差值（弧度）
+//  * @retval 归一化后的角度差值
+//  *********************************************************************************/
+// static float Normalize_Angle_Difference(float angle_diff)
+// {
+//     while (angle_diff > 3.14159265f)
+//     {
+//         angle_diff -= 2.0f * 3.14159265f;
+//     }
+//     while (angle_diff < -3.14159265f)
+//     {
+//         angle_diff += 2.0f * 3.14159265f;
+//     }
+//     return angle_diff;
+// }
 
 /*********************************************************************************
  * @name   Get_Enhanced_Speed_From_Teaching_Pendant
@@ -441,9 +443,9 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
         Enhanced_Teaching_Pendant_Init();
     }
     // 第一步：归一化摇杆输入，这里是摇杆原始值的最大值，这里手柄最大值是6800（这里并不是车的最大速度）
-    float normalized_vx = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vx, 6800.0f);
-    float normalized_vy = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vy, 6800.0f);
-    float normalized_vw = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vw, 1500.0f);
+    float normalized_vx = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vx, 8000.0f);
+    float normalized_vy = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vy, 8000.0f);
+    float normalized_vw = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vw, 8000.0f);
     // 第二步：应用死区处理，为了处理手柄回中时的数字抖动
     normalized_vx = Apply_Deadzone(normalized_vx, enhanced_pendant.mapping_config.deadzone_threshold);
     normalized_vy = Apply_Deadzone(normalized_vy, enhanced_pendant.mapping_config.deadzone_threshold);
@@ -480,7 +482,7 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
     // // === 统一的角度滤波处理 ===
     // static float last_filtered_angle = 0.0f;
     // static uint8_t angle_filter_initialized = 0;
-    
+
     // if (!angle_filter_initialized && target_magnitude > 0.1f)
     // {
     //     last_filtered_angle = target_angle;
@@ -543,7 +545,7 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
     //         {
     //             adaptive_angle_rate = 0.3f; // 低速时正常变化率
     //         }
-            
+
     //         // 角度滤波
     //         float angle_diff = Normalize_Angle_Difference(target_angle - last_filtered_angle);
     //         float filtered_angle_diff = adaptive_angle_rate * angle_diff;
@@ -571,20 +573,20 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
     // // 角速度始终使用正常滤波
     // filtered_vw = LPFilter_Process(&enhanced_pendant.filter_vw, target_vw);
     // 第六步：加速度限制
-    output.Vx = Dual_Speed_Limiter(target_vx, 
+    output.Vx = Dual_Speed_Limiter(target_vx,
                                    enhanced_pendant.last_output.Vx,
-                                   enhanced_pendant.accel_config.max_accel_vx,  // 加速限制
-                                   enhanced_pendant.accel_config.max_decel_vx,  // 减速限制
+                                   enhanced_pendant.accel_config.max_accel_vx, // 加速限制
+                                   enhanced_pendant.accel_config.max_decel_vx, // 减速限制
                                    enhanced_pendant.accel_config.control_period);
-    output.Vy = Dual_Speed_Limiter(target_vy, 
+    output.Vy = Dual_Speed_Limiter(target_vy,
                                    enhanced_pendant.last_output.Vy,
-                                   enhanced_pendant.accel_config.max_accel_vy,  // 加速限制
-                                   enhanced_pendant.accel_config.max_decel_vy,  // 减速限制
+                                   enhanced_pendant.accel_config.max_accel_vy, // 加速限制
+                                   enhanced_pendant.accel_config.max_decel_vy, // 减速限制
                                    enhanced_pendant.accel_config.control_period);
-    output.Vw = Dual_Speed_Limiter(target_vw, 
+    output.Vw = Dual_Speed_Limiter(target_vw,
                                    enhanced_pendant.last_output.Vw,
-                                   enhanced_pendant.accel_config.max_accel_vw,  // 加速限制
-                                   enhanced_pendant.accel_config.max_decel_vw,  // 减速限制
+                                   enhanced_pendant.accel_config.max_accel_vw, // 加速限制
+                                   enhanced_pendant.accel_config.max_decel_vw, // 减速限制
                                    enhanced_pendant.accel_config.control_period);
     // 第七步：应用最终速度死区
     if (fabsf(output.Vx) < enhanced_pendant.accel_config.speed_deadzone)
@@ -606,27 +608,82 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
 
 void Teaching_Pendant_Restart(void)
 {
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, &Teaching_Pendant_Data.Teaching_Pendant_Rec_Data[0], 50);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, &Teaching_Pendant_buffer[0], 30);
     __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 }
+//时代的眼泪了，自研的手柄的通讯协议，但是只有50hz频率太低了，故弃用
+// void Teaching_Pendant_Data_Process(Teaching_Pendant_Data_Struct *Teaching_Pendant)
+// {
+//     Teaching_Pendant->Automatic_Switch = Teaching_Pendant->Teaching_Pendant_Rec_Data[1];
+//     Teaching_Pendant->Route_Type = Teaching_Pendant->Teaching_Pendant_Rec_Data[2];
+//     Teaching_Pendant->Fire_Confirm = Teaching_Pendant->Teaching_Pendant_Rec_Data[3];
+//     Teaching_Pendant->Automatic_Aiming_Switch = Teaching_Pendant->Teaching_Pendant_Rec_Data[4];
+//     Teaching_Pendant->Dribble = Teaching_Pendant->Teaching_Pendant_Rec_Data[5];
+//     Teaching_Pendant->Pass_Ball = Teaching_Pendant->Teaching_Pendant_Rec_Data[6];
+//     Teaching_Pendant->Reset_Confirm = Teaching_Pendant->Teaching_Pendant_Rec_Data[7];
+//     Teaching_Pendant->Route_Death = Teaching_Pendant->Teaching_Pendant_Rec_Data[8];
+//     Teaching_Pendant->Competition_Mode = Teaching_Pendant->Teaching_Pendant_Rec_Data[9];
+//     Teaching_Pendant->Back_To_Programme = Teaching_Pendant->Teaching_Pendant_Rec_Data[10];
 
-void Teaching_Pendant_Data_Process(Teaching_Pendant_Data_Struct *Teaching_Pendant)
+//     Speed_Data_From_Teaching_Pendant.Vx = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[11]);
+//     Speed_Data_From_Teaching_Pendant.Vy = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[15]);
+//     Speed_Data_From_Teaching_Pendant.Vw = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[19]);
+
+//     Teaching_Pendant_Data.Joystick_V = Get_Enhanced_Speed_From_Teaching_Pendant();
+//     Teaching_Pendant->Fire_Angle = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[23]);
+// }
+
+void HT10A_process(uint8_t buffer[30])
 {
-    Teaching_Pendant->Automatic_Switch = Teaching_Pendant->Teaching_Pendant_Rec_Data[1];
-    Teaching_Pendant->Route_Type = Teaching_Pendant->Teaching_Pendant_Rec_Data[2];
-    Teaching_Pendant->Fire_Confirm = Teaching_Pendant->Teaching_Pendant_Rec_Data[3];
-    Teaching_Pendant->Automatic_Aiming_Switch = Teaching_Pendant->Teaching_Pendant_Rec_Data[4];
-    Teaching_Pendant->Dribble = Teaching_Pendant->Teaching_Pendant_Rec_Data[5];
-    Teaching_Pendant->Pass_Ball = Teaching_Pendant->Teaching_Pendant_Rec_Data[6];
-    Teaching_Pendant->Reset_Confirm = Teaching_Pendant->Teaching_Pendant_Rec_Data[7];
-    Teaching_Pendant->Route_Death = Teaching_Pendant->Teaching_Pendant_Rec_Data[8];
-    Teaching_Pendant->Competition_Mode = Teaching_Pendant->Teaching_Pendant_Rec_Data[9];
-    Teaching_Pendant->Back_To_Programme = Teaching_Pendant->Teaching_Pendant_Rec_Data[10];
+    int16_t _channels[16];
+    if (buffer[0] != 0x0F || buffer[24] != 0x00)
+        return; // 数据包头尾正确则开始处理
+    _channels[0] = (buffer[1] | ((buffer[2] & 0x07) << 8)) & 0x07FF;
+    // 通道1: bits 11-21 (byte2低5位 + byte3高6位)
+    _channels[1] = ((buffer[2] >> 3) | (buffer[3] << 5)) & 0x07FF;
+    // 通道2: bits 22-32 (byte3低2位 + byte4全8位 + byte5高1位)
+    _channels[2] = ((buffer[3] >> 6) | (buffer[4] << 2) | ((buffer[5] & 0x01) << 10)) & 0x07FF;
+    // 通道3: bits 33-43 (byte5低7位 + byte6高4位)
+    _channels[3] = ((buffer[5] >> 1) | (buffer[6] << 7)) & 0x07FF;
+    // 通道4: bits 44-54 (byte6低4位 + byte7高7位)
+    _channels[4] = ((buffer[6] >> 4) | (buffer[7] << 4)) & 0x07FF;
+    // 通道5: bits 55-65 (byte7低1位 + byte8全8位 + byte9高2位)
+    _channels[5] = ((buffer[7] >> 7) | (buffer[8] << 1) | ((buffer[9] & 0x03) << 9)) & 0x07FF;
+    // 通道6: bits 66-76 (byte9低6位 + byte10高5位)
+    _channels[6] = ((buffer[9] >> 2) | (buffer[10] << 6)) & 0x07FF;
+    // 通道7: bits 77-87 (byte10低3位 + byte11全8位)
+    _channels[7] = ((buffer[10] >> 5) | (buffer[11] << 3)) & 0x07FF;
+    // 通道8: bits 88-98 (byte12低8位 + byte13高3位)
+    _channels[8] = (buffer[12] | ((buffer[13] & 0x07) << 8)) & 0x07FF;
+    // 通道9: bits 99-109 (byte13低5位 + byte14高6位)
+    _channels[9] = ((buffer[13] >> 3) | (buffer[14] << 5)) & 0x07FF;
+    // 通道10: bits 110-120 (byte14低2位 + byte15全8位 + byte16高1位)
+    _channels[10] = ((buffer[14] >> 6) | (buffer[15] << 2) | ((buffer[16] & 0x01) << 10)) & 0x07FF;
+    // 通道11: bits 121-131 (byte16低7位 + byte17高4位)
+    _channels[11] = ((buffer[16] >> 1) | (buffer[17] << 7)) & 0x07FF;
+    // 通道12: bits 132-142 (byte17低4位 + byte18高7位)
+    _channels[12] = ((buffer[17] >> 4) | (buffer[18] << 4)) & 0x07FF;
+    // 通道13: bits 143-153 (byte18低1位 + byte19全8位 + byte20高2位)
+    _channels[13] = ((buffer[18] >> 7) | (buffer[19] << 1) | ((buffer[20] & 0x03) << 9)) & 0x07FF;
+    // 通道14: bits 154-164 (byte20低6位 + byte21高5位)
+    _channels[14] = ((buffer[20] >> 2) | (buffer[21] << 6)) & 0x07FF;
+    // 通道15: bits 165-175 (byte21低3位 + byte22全8位)
+    _channels[15] = ((buffer[21] >> 5) | (buffer[22] << 3)) & 0x07FF;
 
-    Speed_Data_From_Teaching_Pendant.Vx = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[11]);
-    Speed_Data_From_Teaching_Pendant.Vy = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[15]);
-    Speed_Data_From_Teaching_Pendant.Vw = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[19]);
-
+    // 摇杆[-8000,8000]
+    // Teaching_Pendant_Data.x = (_channels[3] - 992) * 10;
+    // Teaching_Pendant_Data.y = (_channels[2] - 992) * 10;
+    // Teaching_Pendant_Data.z = (_channels[0] - 992) * 10;
+    Speed_Data_From_Teaching_Pendant.Vx = (_channels[3] - 992) * 10; // X方向速度
+    Speed_Data_From_Teaching_Pendant.Vy = (_channels[2] - 992) * 10; // Y方向速度
+    Speed_Data_From_Teaching_Pendant.Vw = (_channels[0] - 992) * 10; // 角速度
+    // 四个开关
+    Teaching_Pendant_Data.Fire = (_channels[4] - 992) / 800;
+    Teaching_Pendant_Data.Automatic_Switch = (_channels[5] - 992) / 800;
+    Teaching_Pendant_Data.Automatic_Aiming_Switch = (_channels[6] - 992) / 800;
+    Teaching_Pendant_Data.Death = (_channels[7] - 992) / 800;
+    // 旋钮[-8000,8000]
+    Teaching_Pendant_Data.switch5 = (_channels[8] - 992) * 10;
+    Teaching_Pendant_Data.switch6 = (_channels[9] - 992) * 10;
     Teaching_Pendant_Data.Joystick_V = Get_Enhanced_Speed_From_Teaching_Pendant();
-    Teaching_Pendant->Fire_Angle = Get_Float_From_4u8(&Teaching_Pendant->Teaching_Pendant_Rec_Data[23]);
 }

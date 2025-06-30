@@ -38,14 +38,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   // 串口4用来接收手柄发送数据
   if (huart->Instance == UART4)
   {
-    if ((Teaching_Pendant_Data.Teaching_Pendant_Rec_Data[0] == 0XA5) && (Teaching_Pendant_Data.Teaching_Pendant_Rec_Data[27] == 0X5A))
-    {
-      Teaching_Pendant_Data_Process(&Teaching_Pendant_Data);
-    }
-    datasend[0] = Speed_Data_From_Teaching_Pendant.Vy;
-    datasend[1] = Teaching_Pendant_Data.Joystick_V.Vy;
-    datasend[2] = Teaching_Pendant_Data.Joystick_V.Vx; // Example: if it's an array of float or int
-    Usart_Send_To_Show32(&huart7, datasend);
+    HT10A_process(Teaching_Pendant_buffer);
     Teaching_Pendant_Restart();
   }
   // 串口10用来和A1电机通信
@@ -78,13 +71,11 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     }
     Computer_Vision_Restart();
   }
-  // 串口3用来接收手柄发送数据
+  // 串口4用来接收手柄发送数据
   if (huart->Instance == UART4)
   {
-    if ((Teaching_Pendant_Data.Teaching_Pendant_Rec_Data[0] == 0XA5) && (Teaching_Pendant_Data.Teaching_Pendant_Rec_Data[27] == 0X5A))
-    {
-      Teaching_Pendant_Data_Process(&Teaching_Pendant_Data);
-    }
+    HT10A_process(Teaching_Pendant_buffer);
+    Teaching_Pendant_Restart();
     Teaching_Pendant_Restart();
   }
   // 串口10用来和A1电机通信

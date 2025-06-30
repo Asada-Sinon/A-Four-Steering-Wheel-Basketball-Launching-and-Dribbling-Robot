@@ -28,22 +28,21 @@ typedef enum
 
 typedef struct
 {
-    uint8_t Teaching_Pendant_Rec_Data[50]; // 数据缓冲区
-    // 第一位是校验位0x7F
-    uint8_t Automatic_Switch;           // 自动手动路径开关，1是自动，0是手动
-    uint8_t Route_Type;                 // 路径选择，该值为Robot_Route_From_Teaching_Pendant_ENUM类型
-    uint8_t Fire_Confirm;               // 发射确认
-    uint8_t Automatic_Aiming_Switch;    // 手动瞄准和自动瞄准切换，0是手动，1是自动
-    uint8_t Dribble;                    // 运球确认
-    uint8_t Pass_Ball;                  // 传球确认
-    uint8_t Reset_Confirm;              // 回到初始点，用于球掉了的情况，长按是1，松手是0
-    uint8_t Route_Death;                // 路径卡死,长按是1，松手是0
-    uint8_t Competition_Mode;           // 竞赛模式，1是运球预选赛，2是投球预选赛，3是正赛
-    uint8_t Back_To_Programme;          // 投球预选赛专属，到最后一个点之后，进入手操模式，按下这个按键继续跑程序
-    Coordinate_Speed_Struct Joystick_V; // 摇杆的速度
-    float Fire_Angle;                   // W摇杆的前后赋值给 Fire_Angle，用以微调丝杠位置
-    // 最后一位是校验位0x7F
-} Teaching_Pendant_Data_Struct; // 手柄回传数据
+    float x;
+    float y;
+    float z;
+    // 这几个开关从左到右
+    float Fire; // 三档带回弹，默认是0,Fire-1
+    float Automatic_Switch; // 两档,自动-1/手动1切换
+    float Automatic_Aiming_Switch; // 两档，自动-1/手动1切换
+    float Death; // 三档没回弹,默认是0,Reset-1/Route_Death1
+
+    float switch5; // 旋钮左
+    float switch6; // 旋钮右
+
+    uint8_t Route_Type; // 路径选择指令,这个不是从手柄收来的
+    Coordinate_Speed_Struct Joystick_V; // 经过处理之后的数据，直接发送给分控的速度
+} remote_control;
 
 // 非线性映射配置结构体
 typedef struct
@@ -59,46 +58,46 @@ typedef struct
 // 双重加速度限制器配置结构体 - 加速和减速分离控制
 typedef struct
 {
-    float max_accel_vx;  // X方向加速时的最大加速度 (mm/s²) - 限制加速不要过快
-    float max_accel_vy;  // Y方向加速时的最大加速度 (mm/s²) - 限制加速不要过快
-    float max_accel_vw;  // 角速度加速时的最大加速度 (°/s²) - 限制加速不要过快
-    
-    float max_decel_vx;  // X方向减速时的最大加速度 (mm/s²) - 限制减速不要过快
-    float max_decel_vy;  // Y方向减速时的最大加速度 (mm/s²) - 限制减速不要过快
-    float max_decel_vw;  // 角速度减速时的最大加速度 (°/s²) - 限制减速不要过快
-    
-    float speed_deadzone;  // 速度死区阈值，小于此值认为是零 (mm/s)
-    float control_period;  // 控制周期 (秒)
+    float max_accel_vx; // X方向加速时的最大加速度 (mm/s²) - 限制加速不要过快
+    float max_accel_vy; // Y方向加速时的最大加速度 (mm/s²) - 限制加速不要过快
+    float max_accel_vw; // 角速度加速时的最大加速度 (°/s²) - 限制加速不要过快
+
+    float max_decel_vx; // X方向减速时的最大加速度 (mm/s²) - 限制减速不要过快
+    float max_decel_vy; // Y方向减速时的最大加速度 (mm/s²) - 限制减速不要过快
+    float max_decel_vw; // 角速度减速时的最大加速度 (°/s²) - 限制减速不要过快
+
+    float speed_deadzone; // 速度死区阈值，小于此值认为是零 (mm/s)
+    float control_period; // 控制周期 (秒)
 } Dual_Accel_Limiter_Config_t;
 
 // 集成的手柄处理器结构体 - 重构版
 typedef struct
 {
-    s_LPFilter filter_magnitude;// 幅值专用低通滤波器 - 新增
-    s_LPFilter filter_vw; // 角速度低通滤波器
+    s_LPFilter filter_magnitude; // 幅值专用低通滤波器 - 新增
+    s_LPFilter filter_vw;        // 角速度低通滤波器
 
     // 角度滤波相关
-    float last_velocity_angle;      // 上次的速度角度
-    uint8_t angle_filter_init;      // 角度滤波器初始化标志
-    
-    NonlinearMapping_Config_t mapping_config;         // 非线性映射配置
-    Dual_Accel_Limiter_Config_t accel_config;        // 双重加速度限制配置
+    float last_velocity_angle; // 上次的速度角度
+    uint8_t angle_filter_init; // 角度滤波器初始化标志
+
+    NonlinearMapping_Config_t mapping_config; // 非线性映射配置
+    Dual_Accel_Limiter_Config_t accel_config; // 双重加速度限制配置
 
     Coordinate_Speed_Struct last_output; // 上一次输出
     uint8_t initialized;                 // 初始化标志
 } Enhanced_Teaching_Pendant_t;
 
-extern Teaching_Pendant_Data_Struct Teaching_Pendant;
-extern Teaching_Pendant_Data_Struct Teaching_Pendant_Data;
+
 extern Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant;
+extern remote_control Teaching_Pendant_Data; // 手柄数据结构体
+extern remote_control Teaching_Pendant; // 手柄数据结构体
+extern uint8_t Teaching_Pendant_buffer[30]; // 手柄数据接收缓冲区
 
 // 函数声明
 void Teaching_Pendant_Restart(void);
-void Teaching_Pendant_Data_Process(Teaching_Pendant_Data_Struct *Teaching_Pendant);
-
+void HT10A_process(uint8_t buffer[30]);
 // 增强版手柄处理函数
 void Enhanced_Teaching_Pendant_Init(void);
 Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void);
-void Reset_Enhanced_Teaching_Pendant(void);
 
 #endif

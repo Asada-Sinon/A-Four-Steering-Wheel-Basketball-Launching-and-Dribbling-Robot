@@ -54,6 +54,7 @@ uint8_t Finish_Fire_Flag = 0;                           // 开火完成标志位，置为1
 uint8_t Adjusting_Fire_Angle_Flag = 0;                  // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
 float data2send[8] = {0};
 uint8_t testbbb = 0;
+Competition_Mode_ENUM Competition_Mode = Competition_Mode_Dribble_Preliminary; // 竞赛模式，默认运球预选赛
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
 extern Route_STU Route_Status;
@@ -176,20 +177,15 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    if (!testbbb)
-    {
-      //Nearest_Vision_Point_Route();
-      testbbb = 1;
-    }
-    if (Teaching_Pendant_Data.Competition_Mode == Competition_Mode_Dribble_Preliminary)
+    if (Competition_Mode == Competition_Mode_Dribble_Preliminary)
     {
       // 运球预选赛
     }
-    else if (Teaching_Pendant_Data.Competition_Mode == Competition_Mode_Shoot_Preliminary)
+    else if (Competition_Mode == Competition_Mode_Shoot_Preliminary)
     {
       // 投球预选赛
     }
-    else if (Teaching_Pendant_Data.Competition_Mode == Competition_Mode_Final)
+    else if (Competition_Mode == Competition_Mode_Final)
     {
       // 正赛
     }
@@ -420,12 +416,12 @@ void ReloadTask(void *argument)
     //    Calculate_Fire_Position(Competition_Mode_Shoot_Preliminary); // 计算A1拉丝杠到的位置
     //  }
     //  在程序里面自动开火或者操作手根据情况手动开火，两种有一个置为1直接开火
-    if (Teaching_Pendant.Fire_Confirm || Teaching_Pendant_Data.Fire_Confirm)
+    if (Teaching_Pendant.Fire == -1 || Teaching_Pendant_Data.Fire == -1)
     {
       Finish_Fire_Flag = 0; // 开火前将开火完成标志位置为0
       Finish_Fire_Flag = Fire();
-      Teaching_Pendant.Fire_Confirm = 0;      // 开火后将开火标志位置为0
-      Teaching_Pendant_Data.Fire_Confirm = 0; // 开火后将开火标志位置为0
+      Teaching_Pendant.Fire = 0;      // 开火后将开火标志位置为0
+      Teaching_Pendant_Data.Fire = 0; // 开火后将开火标志位置为0
     }
     osDelay(2);
   }
