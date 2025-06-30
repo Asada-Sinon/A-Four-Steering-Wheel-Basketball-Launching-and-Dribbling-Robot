@@ -9,6 +9,7 @@
 #include "Computer_Vision.h"
 #include "A1_Motor.h"
 #include "ANO_TC.h"
+#include "mycan.h"
 
 extern float Vx, Vy, Vw;
 float datasend[8];
@@ -43,7 +44,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     }
     datasend[0] = Speed_Data_From_Teaching_Pendant.Vy;
     datasend[1] = Teaching_Pendant_Data.Joystick_V.Vy;
-    datasend[2] = Teaching_Pendant_Data.Joystick_V.Vw;
+    datasend[2] = Teaching_Pendant_Data.Joystick_V.Vx; // Example: if it's an array of float or int
     Usart_Send_To_Show32(&huart7, datasend);
     Teaching_Pendant_Restart();
   }

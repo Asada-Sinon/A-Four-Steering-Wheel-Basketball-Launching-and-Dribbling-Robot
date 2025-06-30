@@ -362,11 +362,11 @@ void Enhanced_Teaching_Pendant_Init(void)
     enhanced_pendant.accel_config.max_accel_vw = 3000.0f;  // 角速度加速限制600°/s²
     //111
     // 减速限制 - 相对激进，保证响应性
-    enhanced_pendant.accel_config.max_decel_vx = 18000.0f; // X方向减速限制6m/s²
-    enhanced_pendant.accel_config.max_decel_vy = 18000.0f; // Y方向减速限制6m/s²
+    enhanced_pendant.accel_config.max_decel_vx = 9999999999.0f; // X方向减速限制6m/s²
+    enhanced_pendant.accel_config.max_decel_vy = 9999999999.0f; // Y方向减速限制6m/s²
     enhanced_pendant.accel_config.max_decel_vw = 6000.0f; // 角速度减速限制1200°/s²
     
-    enhanced_pendant.accel_config.speed_deadzone = 20.0f;    // 速度死区10mm/s
+    enhanced_pendant.accel_config.speed_deadzone = 40.0f;    // 速度死区10mm/s
     enhanced_pendant.accel_config.control_period = 0.02f;    // 20ms控制周期
 
     // 初始化状态
@@ -462,123 +462,126 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
     float target_vx = mapped_vx * enhanced_pendant.mapping_config.max_speed_vx;
     float target_vy = mapped_vy * enhanced_pendant.mapping_config.max_speed_vy;
     float target_vw = mapped_vw * enhanced_pendant.mapping_config.max_speed_vw;
-    // 第五步：分离式滤波策略 - 修改为统一角度滤波
-    float filtered_vx, filtered_vy, filtered_vw;
-    // === 处理平移速度 (Vx, Vy) - 统一角度滤波策略 ===
-    // 计算当前和目标的矢量幅值和角度
-    float current_magnitude, current_angle;
-    float target_magnitude, target_angle;
-    Vector_To_Polar(enhanced_pendant.last_output.Vx, enhanced_pendant.last_output.Vy,
-                    &current_magnitude, &current_angle);
-    Vector_To_Polar(target_vx, target_vy, &target_magnitude, &target_angle);
-    // 判断是加速还是减速（基于矢量幅值）
-    uint8_t is_accelerating = (target_magnitude > current_magnitude) ||
-                              (current_magnitude < 50.0f); // 低速时也当作加速处理
-    // === 统一的角度滤波处理 ===
-    static float last_filtered_angle = 0.0f;
-    static uint8_t angle_filter_initialized = 0;
+    /*===================================================================================================================
+                                                角度和速度滤波（效果不好）
+    =====================================================================================================================*/
+    // // 第五步：分离式滤波策略 - 修改为统一角度滤波
+    // float filtered_vx, filtered_vy, filtered_vw;
+    // // === 处理平移速度 (Vx, Vy) - 统一角度滤波策略 ===
+    // // 计算当前和目标的矢量幅值和角度
+    // float current_magnitude, current_angle;
+    // float target_magnitude, target_angle;
+    // Vector_To_Polar(enhanced_pendant.last_output.Vx, enhanced_pendant.last_output.Vy,
+    //                 &current_magnitude, &current_angle);
+    // Vector_To_Polar(target_vx, target_vy, &target_magnitude, &target_angle);
+    // // 判断是加速还是减速（基于矢量幅值）
+    // uint8_t is_accelerating = (target_magnitude > current_magnitude) ||
+    //                           (current_magnitude < 50.0f); // 低速时也当作加速处理
+    // // === 统一的角度滤波处理 ===
+    // static float last_filtered_angle = 0.0f;
+    // static uint8_t angle_filter_initialized = 0;
     
-    if (!angle_filter_initialized && target_magnitude > 0.1f)
-    {
-        last_filtered_angle = target_angle;
-        angle_filter_initialized = 1;
-    }
-    if (is_accelerating)
-    {
-        // === 加速情况：对速度进行低通滤波 + 角度滤波 ===
-        if (target_magnitude > 0.01f)
-        {
-            // 计算自适应角度变化率
-            float adaptive_angle_rate;
-            if (target_magnitude > 8000.0f)
-            {
-                adaptive_angle_rate = 0.15f; // 高速时角度变化更慢
-            }
-            else if (target_magnitude > 4000.0f)
-            {
-                float speed_ratio = (target_magnitude - 4000.0f) / 4000.0f;
-                adaptive_angle_rate = 0.3f - (0.15f * speed_ratio);
-            }
-            else
-            {
-                adaptive_angle_rate = 0.3f; // 低速时正常变化率
-            }
-            // 角度滤波
-            float angle_diff = Normalize_Angle_Difference(target_angle - last_filtered_angle);
-            float filtered_angle_diff = adaptive_angle_rate * angle_diff;
-            float filtered_angle = last_filtered_angle + filtered_angle_diff;
-            last_filtered_angle = filtered_angle;
-            // 对幅值也进行滤波（加速情况）
-            float filtered_magnitude = LPFilter_Process(&enhanced_pendant.filter_magnitude, target_magnitude);
-            // 重建滤波后的矢量
-            Polar_To_Vector(filtered_magnitude, filtered_angle, &filtered_vx, &filtered_vy);
-        }
-        else
-        {
-            // 静止状态
-            filtered_vx = 0.0f;
-            filtered_vy = 0.0f;
-        }
-    }
-    else
-    {
-        // === 减速情况：幅值不滤波 + 角度滤波 ===
-        if (target_magnitude > 0.01f)
-        {
-            // 计算自适应角度变化率
-            float adaptive_angle_rate;
-            if (target_magnitude > 8000.0f)
-            {
-                adaptive_angle_rate = 0.15f; // 高速时角度变化更慢
-            }
-            else if (target_magnitude > 4000.0f)
-            {
-                float speed_ratio = (target_magnitude - 4000.0f) / 4000.0f;
-                adaptive_angle_rate = 0.3f - (0.15f * speed_ratio);
-            }
-            else
-            {
-                adaptive_angle_rate = 0.3f; // 低速时正常变化率
-            }
+    // if (!angle_filter_initialized && target_magnitude > 0.1f)
+    // {
+    //     last_filtered_angle = target_angle;
+    //     angle_filter_initialized = 1;
+    // }
+    // if (is_accelerating)
+    // {
+    //     // === 加速情况：对速度进行低通滤波 + 角度滤波 ===
+    //     if (target_magnitude > 0.01f)
+    //     {
+    //         // 计算自适应角度变化率
+    //         float adaptive_angle_rate;
+    //         if (target_magnitude > 8000.0f)
+    //         {
+    //             adaptive_angle_rate = 0.15f; // 高速时角度变化更慢
+    //         }
+    //         else if (target_magnitude > 4000.0f)
+    //         {
+    //             float speed_ratio = (target_magnitude - 4000.0f) / 4000.0f;
+    //             adaptive_angle_rate = 0.3f - (0.15f * speed_ratio);
+    //         }
+    //         else
+    //         {
+    //             adaptive_angle_rate = 0.3f; // 低速时正常变化率
+    //         }
+    //         // 角度滤波
+    //         float angle_diff = Normalize_Angle_Difference(target_angle - last_filtered_angle);
+    //         float filtered_angle_diff = adaptive_angle_rate * angle_diff;
+    //         float filtered_angle = last_filtered_angle + filtered_angle_diff;
+    //         last_filtered_angle = filtered_angle;
+    //         // 对幅值也进行滤波（加速情况）
+    //         float filtered_magnitude = LPFilter_Process(&enhanced_pendant.filter_magnitude, target_magnitude);
+    //         // 重建滤波后的矢量
+    //         Polar_To_Vector(filtered_magnitude, filtered_angle, &filtered_vx, &filtered_vy);
+    //     }
+    //     else
+    //     {
+    //         // 静止状态
+    //         filtered_vx = 0.0f;
+    //         filtered_vy = 0.0f;
+    //     }
+    // }
+    // else
+    // {
+    //     // === 减速情况：幅值不滤波 + 角度滤波 ===
+    //     if (target_magnitude > 0.01f)
+    //     {
+    //         // 计算自适应角度变化率
+    //         float adaptive_angle_rate;
+    //         if (target_magnitude > 8000.0f)
+    //         {
+    //             adaptive_angle_rate = 0.15f; // 高速时角度变化更慢
+    //         }
+    //         else if (target_magnitude > 4000.0f)
+    //         {
+    //             float speed_ratio = (target_magnitude - 4000.0f) / 4000.0f;
+    //             adaptive_angle_rate = 0.3f - (0.15f * speed_ratio);
+    //         }
+    //         else
+    //         {
+    //             adaptive_angle_rate = 0.3f; // 低速时正常变化率
+    //         }
             
-            // 角度滤波
-            float angle_diff = Normalize_Angle_Difference(target_angle - last_filtered_angle);
-            float filtered_angle_diff = adaptive_angle_rate * angle_diff;
-            float filtered_angle = last_filtered_angle + filtered_angle_diff;
-            last_filtered_angle = filtered_angle;
+    //         // 角度滤波
+    //         float angle_diff = Normalize_Angle_Difference(target_angle - last_filtered_angle);
+    //         float filtered_angle_diff = adaptive_angle_rate * angle_diff;
+    //         float filtered_angle = last_filtered_angle + filtered_angle_diff;
+    //         last_filtered_angle = filtered_angle;
 
-            // 使用滤波后的角度和原始幅值重建矢量（减速情况幅值不滤波）
-            Polar_To_Vector(target_magnitude, filtered_angle, &filtered_vx, &filtered_vy);
-        }
-        else
-        {
-            // 静止状态，保持角度
-            if (angle_filter_initialized)
-            {
-                Polar_To_Vector(0.0f, last_filtered_angle, &filtered_vx, &filtered_vy);
-            }
-            else
-            {
-                filtered_vx = 0.0f;
-                filtered_vy = 0.0f;
-            }
-        }
-    }
-    // === 处理角速度 ===
-    // 角速度始终使用正常滤波
-    filtered_vw = LPFilter_Process(&enhanced_pendant.filter_vw, target_vw);
+    //         // 使用滤波后的角度和原始幅值重建矢量（减速情况幅值不滤波）
+    //         Polar_To_Vector(target_magnitude, filtered_angle, &filtered_vx, &filtered_vy);
+    //     }
+    //     else
+    //     {
+    //         // 静止状态，保持角度
+    //         if (angle_filter_initialized)
+    //         {
+    //             Polar_To_Vector(0.0f, last_filtered_angle, &filtered_vx, &filtered_vy);
+    //         }
+    //         else
+    //         {
+    //             filtered_vx = 0.0f;
+    //             filtered_vy = 0.0f;
+    //         }
+    //     }
+    // }
+    // // === 处理角速度 ===
+    // // 角速度始终使用正常滤波
+    // filtered_vw = LPFilter_Process(&enhanced_pendant.filter_vw, target_vw);
     // 第六步：加速度限制
-    output.Vx = Dual_Speed_Limiter(filtered_vx, 
+    output.Vx = Dual_Speed_Limiter(target_vx, 
                                    enhanced_pendant.last_output.Vx,
                                    enhanced_pendant.accel_config.max_accel_vx,  // 加速限制
                                    enhanced_pendant.accel_config.max_decel_vx,  // 减速限制
                                    enhanced_pendant.accel_config.control_period);
-    output.Vy = Dual_Speed_Limiter(filtered_vy, 
+    output.Vy = Dual_Speed_Limiter(target_vy, 
                                    enhanced_pendant.last_output.Vy,
                                    enhanced_pendant.accel_config.max_accel_vy,  // 加速限制
                                    enhanced_pendant.accel_config.max_decel_vy,  // 减速限制
                                    enhanced_pendant.accel_config.control_period);
-    output.Vw = Dual_Speed_Limiter(filtered_vw, 
+    output.Vw = Dual_Speed_Limiter(target_vw, 
                                    enhanced_pendant.last_output.Vw,
                                    enhanced_pendant.accel_config.max_accel_vw,  // 加速限制
                                    enhanced_pendant.accel_config.max_decel_vw,  // 减速限制

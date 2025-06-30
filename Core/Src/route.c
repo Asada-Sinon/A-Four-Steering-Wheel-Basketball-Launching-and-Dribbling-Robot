@@ -533,34 +533,6 @@ static float Safe_Angle_Normalization(float angle)
 }
 
 /*********************************************************************************
- * @name   Handle_Angle_Transition
- * @brief  处理角度过渡，防止路径规划中的角度跳变
- * @param  current_angle: 当前角度
- * @param  target_angle: 目标角度
- * @param  last_angle: 上一次的角度（用于检测跳变）
- * @retval 处理后的目标角度
- *********************************************************************************/
-static float Handle_Angle_Transition(float current_angle, float target_angle, float last_angle)
-{
-    // 归一化所有输入角度
-    current_angle = Safe_Angle_Normalization(current_angle);
-    target_angle = Safe_Angle_Normalization(target_angle);
-    last_angle = Safe_Angle_Normalization(last_angle);
-    
-    // 检测当前角度是否发生了跳变（超过阈值认为是跳变而非正常旋转）
-    float angle_jump_threshold = 150.0f; // 角度跳变阈值
-    float current_diff = Calculate_Angle_Difference(current_angle, last_angle);
-    
-    if (fabsf(current_diff) > angle_jump_threshold)
-    {
-        // 检测到角度跳变，可能是从+180跳到-180或反之
-        // 保持目标角度不变，让PID慢慢收敛
-        return target_angle;
-    }
-    
-    return target_angle;
-}
-/*********************************************************************************
  * @name   Calculate_Angle_Error_With_Direction
  * @brief  计算角度误差，始终选择最短路径，返回带方向的误差
  * @param  target: 目标角度 [-180, 180]
@@ -586,20 +558,6 @@ static float Calculate_Angle_Error_With_Direction(float target, float current)
     }
     
     return error;
-}
-
-/*********************************************************************************
- * @name   Is_Angle_Reached
- * @brief  判断角度是否已经到达目标（考虑容差）
- * @param  target: 目标角度
- * @param  current: 当前角度
- * @param  tolerance: 容差（度）
- * @retval true: 已到达, false: 未到达
- *********************************************************************************/
-static bool Is_Angle_Reached(float target, float current, float tolerance)
-{
-    float error = Calculate_Angle_Error_With_Direction(target, current);
-    return fabsf(error) <= tolerance;
 }
 
 /*********************************************************************************
