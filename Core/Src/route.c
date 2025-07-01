@@ -79,6 +79,7 @@ PID_Struct Cir_AnglePID;   // 圆弧角度pid调节
 PID_Struct Keep_X_PID;     // 保持x方向位置
 PID_Struct Keep_Y_PID;     // 保持y方向位置
 PID_Struct Keep_W_PID;     // 保持角度
+PID_Struct Automatic_Aiming_PID;                                  // 自瞄pid
 
 float Angle_Aim = 0; // 目标角度值（绝对角度），中间变量
 // float Angle_Offset = 0; // 删除：剩余要转的角度，改用 Status->Parameter.Abs_Angle_Error
@@ -518,26 +519,26 @@ static float Normalize_Angle(float angle)
  * @param  current: 当前角度
  * @retval 角度差（带符号，正值表示逆时针）
  *********************************************************************************/
-static float Calculate_Angle_Difference(float target, float current)
-{
-    // 确保输入角度在有效范围内
-    target = Normalize_Angle(target);
-    current = Normalize_Angle(current);
+// static float Calculate_Angle_Difference(float target, float current)
+// {
+//     // 确保输入角度在有效范围内
+//     target = Normalize_Angle(target);
+//     current = Normalize_Angle(current);
 
-    float diff = target - current;
+//     float diff = target - current;
 
-    // 处理跨越-180/+180边界的情况，选择最短路径
-    if (diff > 180.0f)
-    {
-        diff -= 360.0f; // 选择顺时针方向
-    }
-    else if (diff < -180.0f)
-    {
-        diff += 360.0f; // 选择逆时针方向
-    }
+//     // 处理跨越-180/+180边界的情况，选择最短路径
+//     if (diff > 180.0f)
+//     {
+//         diff -= 360.0f; // 选择顺时针方向
+//     }
+//     else if (diff < -180.0f)
+//     {
+//         diff += 360.0f; // 选择逆时针方向
+//     }
 
-    return diff;
-}
+//     return diff;
+// }
 
 /*********************************************************************************
  * @name   Calculate_Absolute_Angle_Distance
@@ -1137,6 +1138,7 @@ void Route_Init(void)
     PID_Init_Each(&Keep_X_PID, 0.5f, 0.0f, 0.0f);
     PID_Init_Each(&Keep_Y_PID, 0.5f, 0.0f, 0.0f);
     PID_Init_Each(&Keep_W_PID, 0.5f, 0.0f, 0.0f);
+    PID_Init_Each(&Automatic_Aiming_PID, 20.0f, 0.0f, 15.0f);
 }
 
 /*===================================================================================================================
@@ -1330,7 +1332,6 @@ void Nearest_Vision_Point_Route(void)
 Coordinate_Position_Struct Pre_Basket_Position = {3757, -620, 0}; // 预选赛世界坐标系篮筐位置
 Coordinate_Position_Struct Basket_Position = {2000, 6000, 0};     // 正赛世界坐标系篮筐位置
 Coordinate_Position_Struct Data_For_Automatic_Aiming;             // 算角度的中间变量，X和Y存的是篮筐位置和现在位置的差值，W存的是世界坐标系下目标角度的绝对角度
-PID_Struct Automatic_Aiming_PID;                                  // 自瞄pid
 /*********************************************************************************
  * @name    Automatic_Aiming_W_Calculate
  * @brief   计算自动瞄准所需的目标角度
@@ -1373,7 +1374,8 @@ float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float cu
     // 使用atan2f计算角度，处理所有象限情况
     float angle_rad = atan2f(delta_y, delta_x);
     // 转换为角度制并返回
-    float Result_Angle = angle_rad * CHANGE_TO_ANGLE;
+    float medium_angle = angle_rad * CHANGE_TO_ANGLE;
+    float Result_Angle = medium_angle - 90.0f; // 机器人坐标系下的角度，90度偏移
     PID_Calculate_Positional(&Automatic_Aiming_PID, Computer_Vision_Data.LiDAR.W, Result_Angle);
     if (Automatic_Aiming_PID.Output > 2000)
         Automatic_Aiming_PID.Output = 2000;

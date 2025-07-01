@@ -1,6 +1,7 @@
 #ifndef __COMPUTER__VISION__
 #define __COMPUTER__VISION__
 #include "stdint.h"
+#include "route.h"
 
 typedef struct
 {
@@ -84,7 +85,6 @@ typedef struct
     LiDAR_Struct LiDAR;                   // 激光雷达数据
     Camera_Struct Camera;                 // 摄像机数据
     Motion_Estimator_Struct Motion;       // 运动状态估计器
-    Coordinate_Position_Struct mingsang_Coordinate; // 马铭泽要的坐标系
 } Computer_Vision_Struct;                 // 视觉相关数据结构体
 
 extern Computer_Vision_Struct Computer_Vision_Data;

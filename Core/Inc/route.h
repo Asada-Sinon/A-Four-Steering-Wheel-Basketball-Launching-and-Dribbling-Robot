@@ -139,6 +139,7 @@ void Nearest_Vision_Point_Route(void);
 void Dribble_Pre_Competition(void);
 void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold);
 void Automatic_Aiming_When_Nonautomatic(void);
+float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float custom_y);
 // uint8_t Vision_Search_Rotation(float rotation_speed, uint8_t direction_first);
 Coordinate_Position_Struct Position_Coordinate_Transformation(Coordinate_Position_Struct *Coordinitioate_To_Convert, Coordinate_Position_Struct *CoordinateSystem, float angle);
 Coordinate_Speed_Struct Speed_Coordinate_Transformation(Coordinate_Speed_Struct *Speed_To_Convert, Coordinate_Speed_Struct *Zero_Speed, float angle);

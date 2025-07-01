@@ -259,11 +259,12 @@ void RoutTask(void *argument)
       |                               半场地图                                      |
       |                                                                            |
       |                                                                            |
-      |                                  篮筐                          车（车头朝右）|
+      |                                  篮筐                          车（车头朝下）|
       |----------------------------------------------------------------------------*/
                                   /* 操作手在这里*/
       Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
-      mingsang_Coordinate_Speed = Speed_Coordinate_Transformation(&Word_Coordinate_Speed_For_Gamepad, &mingsang_Coordinate_Speed, 90.0f);
+      mingsang_Coordinate_Speed.Vx = -Word_Coordinate_Speed_For_Gamepad.Vx;
+      mingsang_Coordinate_Speed.Vy = -Word_Coordinate_Speed_For_Gamepad.Vy;
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = mingsang_Coordinate_Speed.Vx;
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = mingsang_Coordinate_Speed.Vy;
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
