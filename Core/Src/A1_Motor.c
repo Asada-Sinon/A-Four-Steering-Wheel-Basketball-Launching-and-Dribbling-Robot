@@ -399,3 +399,22 @@ void A1Motor_Smooth_Position_Control(A1Motor *motor, float target_position,
         }
     }
 }
+
+// void A1Motor_Smooth_Position_Control(A1Motor *motor, float target_position,
+//                                      uint32_t total_time_ms, float kw, float max_velocity)
+// {
+//     motor->command.kw = kw;   // 速度刚度系数
+    
+//     float error = target_position - motor->feedback.Position_Sum;
+    
+//     // 你要求的逻辑：差值大于0.1就最大速度，否则停止
+//     if (fabsf(error) > 0.1f)
+//     {
+//         motor->command.velocity = (error > 0) ? max_velocity : -max_velocity;
+//     }
+//     else
+//     {
+//         motor->command.velocity = 0;
+//     }
+// }
+

@@ -100,6 +100,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -140,7 +141,7 @@ int main(void)
   Teaching_Pendant_Restart(); // å¯??é??å¢œéŒå‹??é™ï½†å¸´é€?
   A1Motor_Restart();          // å¯??é??A1é‚å›¦è¦†é™ï½†å¸´é??
   Route_Init();
-  //ShangCeng_Init(); // ä¸Šå±‚åˆå?åŒ?
+  ShangCeng_Init(); // ä¸Šå±‚åˆå?åŒ?
   Enhanced_Teaching_Pendant_Init();
   
   /* USER CODE END 2 */

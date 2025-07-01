@@ -1329,7 +1329,7 @@ void Nearest_Vision_Point_Route(void)
                                               投球预选赛相关
 =====================================================================================================================*/
 
-Coordinate_Position_Struct Pre_Basket_Position = {3757, -620, 0}; // 预选赛世界坐标系篮筐位置
+Coordinate_Position_Struct Pre_Basket_Position = {-3660, -790, 0}; // 预选赛世界坐标系篮筐位置
 Coordinate_Position_Struct Basket_Position = {2000, 6000, 0};     // 正赛世界坐标系篮筐位置
 Coordinate_Position_Struct Data_For_Automatic_Aiming;             // 算角度的中间变量，X和Y存的是篮筐位置和现在位置的差值，W存的是世界坐标系下目标角度的绝对角度
 /*********************************************************************************

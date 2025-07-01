@@ -89,7 +89,7 @@ void ShangCeng_Init()
 	{//上电让丝杠上升去找光电门
 		g_a1motor.command.velocity = -20;
 	}
-	A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
+	//A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
 	Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
 }
 
