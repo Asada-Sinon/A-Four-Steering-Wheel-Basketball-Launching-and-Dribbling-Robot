@@ -458,21 +458,35 @@ float Fitting_Function(float x)
 
 /*********************************************************************************
  * @name 	Stop_Area_Slide_PID_Calculate
- * @brief: 停止区滑行PID计算
+ * @brief: 停止区滑行PID计算（使用多项式插值）
  * @param  PID PID结构体指针
  * @param  Target 目标位置
  * @param  Measure 当前测量位置
  * @param  Start 起始位置
+ * @param  Kp_Parameter Kp参数基准值
+ * @param  Kd_Parameter Kd参数基准值
  * @retval 返回计算后的PID结构体
  *********************************************************************************/
 PID_Struct Stop_Area_Slide_PID_Calculate(PID_Struct *PID, float Target, float Measure, float Start, float Kp_Parameter, float Kd_Parameter)
 {
-    float Distance = Target - Start;                   // 计算目标位置和当前测量位置的距离
-    float Rest_Distance = Target - Measure;            // 计算目标位置和当前测量位置的剩余距离
-    float Parameter = fabsf(Rest_Distance / Distance); // 计算剩余距离占总距离的比例,越近越小
-    PID->Kp = Parameter * Kp_Parameter + 10;           // 有个5保证至少有值
-    PID->Ki = 0;
-    PID->Kd = Parameter * Kd_Parameter + 10; // 这里没给D后续效果不好可以考虑给
+    float Distance = Target - Start;        // 计算总距离
+    float Rest_Distance = Target - Measure; // 计算剩余距离
+
+    float Parameter = 1 - fabsf(Rest_Distance / Distance); // 计算剩余距离占总距离的比例,越近越大
+    Parameter = Clamp_Float(Parameter, 0.0f, 1.0f);        // 确保参数在合理范围内
+
+    // 使用3次多项式插值替代线性插值
+    // 多项式函数: f(x) = 2x³ - 3x² + 1 (当x=1时f(x)=0, 当x=0时f(x)=1)
+    // 这样越接近目标点(Parameter越大)，PID参数越小
+    float polynomial_factor = 2.0f * Parameter * Parameter * Parameter - 3.0f * Parameter * Parameter + 1.0f;
+
+    // 确保多项式因子在合理范围内
+    polynomial_factor = Clamp_Float(polynomial_factor, 0.0f, 1.0f);
+
+    // 使用多项式插值计算PID参数
+    PID->Kp = polynomial_factor * Kp_Parameter + 10; // 基础值10保证至少有值
+    PID->Ki = 0;                                     // 积分项保持为0
+    PID->Kd = 0;                                     // 微分项也使用多项式插值
     return *PID;
 }
 /*********************************************************************************
@@ -532,10 +546,10 @@ static float Calculate_Angle_Difference(float target, float current)
  * @param  angle2: 角度2
  * @retval 绝对角度距离
  *********************************************************************************/
-static float Calculate_Absolute_Angle_Distance(float angle1, float angle2)
-{
-    return fabsf(Calculate_Angle_Difference(angle1, angle2));
-}
+// static float Calculate_Absolute_Angle_Distance(float angle1, float angle2)
+// {
+//     return fabsf(Calculate_Angle_Difference(angle1, angle2));
+// }
 
 /*********************************************************************************
  * @name   Safe_Angle_Normalization
@@ -1326,9 +1340,9 @@ PID_Struct Automatic_Aiming_PID;                                  // 自瞄pid
  *
  * @param   target_type  目标类型: 2 - 预选赛篮筐, 3 - 正赛篮筐, 其他 - 自定义坐标
  *                       (Competition_Mode_Shoot_Preliminary: 2, Competition_Mode_Final: 3
- * @param   custom_x     当target_type=2时使用的自定义X坐标，否则忽略此参数
- * @param   custom_y     当target_type=2时使用的自定义Y坐标，否则忽略此参数
- * @return  float        计算得到的目标角度(角度制)
+ * @param   custom_x     当target_type=其他时使用的自定义X坐标，否则忽略此参数
+ * @param   custom_y     当target_type=其他时使用的自定义Y坐标，否则忽略此参数
+ * @return  float        计算得到的速度
  *********************************************************************************/
 float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float custom_y)
 {
@@ -1357,9 +1371,15 @@ float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float cu
     float delta_x = target_x - Computer_Vision_Data.LiDAR.X;
     float delta_y = target_y - Computer_Vision_Data.LiDAR.Y;
     // 使用atan2f计算角度，处理所有象限情况
-    float angle_rad = atan2f(delta_x, delta_y);
+    float angle_rad = atan2f(delta_y, delta_x);
     // 转换为角度制并返回
-    return -angle_rad * CHANGE_TO_ANGLE;
+    float Result_Angle = angle_rad * CHANGE_TO_ANGLE;
+    PID_Calculate_Positional(&Automatic_Aiming_PID, Computer_Vision_Data.LiDAR.W, Result_Angle);
+    if (Automatic_Aiming_PID.Output > 2000)
+        Automatic_Aiming_PID.Output = 2000;
+    else if (Automatic_Aiming_PID.Output < -2000)
+        Automatic_Aiming_PID.Output = -2000;
+    return Automatic_Aiming_PID.Output; // 返回计算得到的速度
 }
 
 /*********************************************************************************
@@ -1372,7 +1392,7 @@ float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float cu
  *                           (Competition_Mode_Shoot_Preliminary: 2, Competition_Mode_Final: 3
  * @return  void
  *********************************************************************************/
-void Automatic_Aiming_When_Nonautomatic(uint8_t competition_type)
+void Automatic_Aiming_When_Nonautomatic(void)
 {
     // 基于传感器选择瞄准模式
     if (Computer_Vision_Data.Camera.Kinect.Z < 10000)
@@ -1383,10 +1403,7 @@ void Automatic_Aiming_When_Nonautomatic(uint8_t competition_type)
     }
     else
     {
-        // 位置模式：使用新的角度计算函数，传入比赛类型参数
-        float target_angle = Automatic_Aiming_W_Calculate(competition_type, 0, 0);
-        // 控制机器人当前角度接近目标角度
-        PID_Calculate_Positional(&Automatic_Aiming_PID, World_Coordinate_System_NowPos.W, target_angle);
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0;
     }
     // 将PID输出应用到机器人角速度
     Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_PID.Output;
@@ -1921,12 +1938,12 @@ void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold)
 //     }
 // }
 
-//Coordinate_Position_Struct Fix_Point_For_Shoot; // 定点一直投的定点，这个点选择在三分线之外
-extern uint8_t Reload_Flag;                     // 换弹标志位，置为1时执行换弹
-extern uint8_t Finish_Fire_Flag;                // 投球完成标志位，置为1时表示投球完成
-extern uint8_t Adjusting_Fire_Angle_Flag;       // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
-//uint8_t Shoot_Point_Count = 0;
-float A1_Remember_Pos = 0;//在最后定点的时候记住操作手微调的位置
+// Coordinate_Position_Struct Fix_Point_For_Shoot; // 定点一直投的定点，这个点选择在三分线之外
+extern uint8_t Reload_Flag;               // 换弹标志位，置为1时执行换弹
+extern uint8_t Finish_Fire_Flag;          // 投球完成标志位，置为1时表示投球完成
+extern uint8_t Adjusting_Fire_Angle_Flag; // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
+// uint8_t Shoot_Point_Count = 0;
+float A1_Remember_Pos = 0; // 在最后定点的时候记住操作手微调的位置
 /*********************************************************************************
  * @name 	Judge_Fix_Point
  * @brief   存最合适定点投篮的点，在每次发射前调用一下即可(时代的眼泪了，原来队长想使用视觉回传数据来完成预选赛，减重把视觉减掉了)
@@ -2039,5 +2056,4 @@ float A1_Remember_Pos = 0;//在最后定点的时候记住操作手微调的位�
  *********************************************************************************/
 void Shoot_Pre_Competition(void)
 {
-
 }

@@ -362,8 +362,8 @@ void Enhanced_Teaching_Pendant_Init(void)
     enhanced_pendant.accel_config.max_accel_vw = 3000.0f; // 角速度加速限制600°/s²
     // 111
     //  减速限制 - 相对激进，保证响应性
-    enhanced_pendant.accel_config.max_decel_vx = 9999999999.0f; // X方向减速限制6m/s²
-    enhanced_pendant.accel_config.max_decel_vy = 9999999999.0f; // Y方向减速限制6m/s²
+    enhanced_pendant.accel_config.max_decel_vx = 15000.0f; // X方向减速限制6m/s²
+    enhanced_pendant.accel_config.max_decel_vy = 15000.0f; // Y方向减速限制6m/s²
     enhanced_pendant.accel_config.max_decel_vw = 6000.0f;       // 角速度减速限制1200°/s²
 
     enhanced_pendant.accel_config.speed_deadzone = 40.0f; // 速度死区10mm/s

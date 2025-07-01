@@ -220,6 +220,7 @@ void Computer_Vision_Data_Process(Computer_Vision_Struct *Computer_Vision)
     Computer_Vision->LiDAR.W = Get_Float_From_4u8(&Computer_Vision->Computer_Vision_Rec_Data[26]);
     // 最后两位是标志位
     
+    Position_Coordinate_Transformation(&Computer_Vision->LiDAR, &Computer_Vision->mingsang_Coordinate, 90.0f);
     // *** 新增：更新运动估计器 ***
     // 使用静态计数器代替时间戳
     static uint32_t data_counter = 0;

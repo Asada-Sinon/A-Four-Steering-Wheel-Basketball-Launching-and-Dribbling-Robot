@@ -39,7 +39,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-int a[4] = {0, 0, 0, 0};
 #define Basket_Hight 2553;                   // 我们场地篮框的高度+篮球半径
 #define CHANGE_TO_RADIAN (0.01745329251994f) // 角度制转换为弧度制系数
 #define CHANGE_TO_ANGLE (57.29577951308232f) // 弧度制转换为角度制系数
@@ -54,6 +53,9 @@ uint8_t Finish_Fire_Flag = 0;                           // 开火完成标志位，置为1
 uint8_t Adjusting_Fire_Angle_Flag = 0;                  // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
 float data2send[8] = {0};
 uint8_t testbbb = 0;
+float route_Test[6] = {0, 0, 0, 0}; // 用于测试的数组
+Coordinate_Speed_Struct Word_Coordinate_Speed_For_Gamepad = {0, 0, 0}; // 世界坐标系下零速度
+Coordinate_Speed_Struct mingsang_Coordinate_Speed = {0, 0, 0}; // 马铭泽要的坐标系速度
 Competition_Mode_ENUM Competition_Mode = Competition_Mode_None; // 竞赛模式,这是代码大和谐的关键
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
@@ -220,6 +222,11 @@ void StartDefaultTask(void *argument)
     /*===================================================================================================================
                                                   运球预选赛相关
     =====================================================================================================================*/
+    if(route_Test[0] == 1)
+    {
+      Chassis_Line_Route(route_Test[1], route_Test[2], route_Test[3], 2500, 6000, 1600, 50, 100, 0.1f, 0.4f, 200, route_Test[4], route_Test[5]);
+      route_Test[0] = 0; // 重置标志位
+    }
     osDelay(2);
   }
   /* USER CODE END StartDefaultTask */
@@ -242,15 +249,35 @@ void RoutTask(void *argument)
     // 手动路径相关
     if (Teaching_Pendant_Data.Automatic_Switch == 1)
     {
+      //直接赋值车身坐标系速度
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
       Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+      //车身坐标系速度转化为马铭泽要的坐标系速度（车的开始位置有讲究）
+      /*---------------------------------------------------------------------------
+      |                                                                            |
+      |                               半场地图                                      |
+      |                                                                            |
+      |                                                                            |
+      |                                  篮筐                          车（车头朝右）|
+      |----------------------------------------------------------------------------*/
+                                  /* 操作手在这里*/
+      Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
+      mingsang_Coordinate_Speed = Speed_Coordinate_Transformation(&Word_Coordinate_Speed_For_Gamepad, &mingsang_Coordinate_Speed, 90.0f);
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = mingsang_Coordinate_Speed.Vx;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = mingsang_Coordinate_Speed.Vy;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
     }
+    // if(Teaching_Pendant_Data.Automatic_Switch == -1)
+    // {
+    //   Chassis_Line_Route(0, 1000, 0, 1500, 4000, 1000, 50, 100, 0.01f, 0.4f, 200, 8, 15);
+    // }
+
     // 检查是否到两个视觉识别点的函数，需要一直跑来检测
     Check_Near_Vision_Points(&Vision_Point_Flag, 20);
     // Dribble_Pre_Competition();
-    Dribble_Twice();
-    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+    //Dribble_Twice();
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     /*===================================================================================================================
                                                   运球预选赛相关
     =====================================================================================================================*/
@@ -258,7 +285,7 @@ void RoutTask(void *argument)
     {
       Dribble_Pre_Competition();
     }
-    osDelay(2000);
+    osDelay(2);
   }
   /* USER CODE END RoutTask */
 }

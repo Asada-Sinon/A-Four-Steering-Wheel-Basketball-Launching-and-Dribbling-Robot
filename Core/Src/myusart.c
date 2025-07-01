@@ -76,7 +76,6 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   {
     HT10A_process(Teaching_Pendant_buffer);
     Teaching_Pendant_Restart();
-    Teaching_Pendant_Restart();
   }
   // 串口10用来和A1电机通信
   if (huart->Instance == USART10)

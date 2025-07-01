@@ -40,7 +40,7 @@ typedef struct
 
     uint8_t Route_Type; // 路径选择指令,这个不是从手柄收来的
     Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant; // 手柄速度数据，经过处理之后的速度数据
-    Coordinate_Speed_Struct Joystick_V; // 经过处理之后的数据，直接发送给分控的速度
+    Coordinate_Speed_Struct Joystick_V; // 经过处理之后的数据，直接发送给分控的车身坐标系速度
 } remote_control;
 
 // 非线性映射配置结构体
