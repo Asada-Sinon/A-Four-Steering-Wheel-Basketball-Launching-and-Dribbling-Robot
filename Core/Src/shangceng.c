@@ -53,6 +53,7 @@ void Dribble_Twice() // 运球赛运球
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET); // 收大气缸
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
 	// 连续两次运球中间间隔时间
+	//git test
 	// osDelay(1500);
 	osDelay(400);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
