@@ -54,7 +54,7 @@ uint8_t Finish_Fire_Flag = 0;                           // 开火完成标志位，置为1
 uint8_t Adjusting_Fire_Angle_Flag = 0;                  // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
 float data2send[8] = {0};
 uint8_t testbbb = 0;
-Competition_Mode_ENUM Competition_Mode = Competition_Mode_Dribble_Preliminary; // 竞赛模式，默认运球预选赛
+Competition_Mode_ENUM Competition_Mode = Competition_Mode_None; // 竞赛模式,这是代码大和谐的关键
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
 extern Route_STU Route_Status;
@@ -77,30 +77,30 @@ extern Route_STU Route_Status;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "defaultTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Route */
 osThreadId_t RouteHandle;
 const osThreadAttr_t Route_attributes = {
-    .name = "Route",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "Route",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Shoot */
 osThreadId_t ShootHandle;
 const osThreadAttr_t Shoot_attributes = {
-    .name = "Shoot",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "Shoot",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for Reload */
 osThreadId_t ReloadHandle;
 const osThreadAttr_t Reload_attributes = {
-    .name = "Reload",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "Reload",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,12 +116,11 @@ void ReloadTask(void *argument);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
-void MX_FREERTOS_Init(void)
-{
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -162,6 +161,7 @@ void MX_FREERTOS_Init(void)
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -189,26 +189,6 @@ void StartDefaultTask(void *argument)
     {
       // 正赛
     }
-    // if (a[0] == 1)
-    // {
-    //   // Chassis_Line_Route(a[1],a[2],a[3],1500,5000,2000,50,2000,0.01,0.4,100);//娑擃厽顔屾径褎顩?4000瀹革箑褰哥捄婵堫瀲
-    //   // Chassis_Line_Route(a[1],a[2],a[3],1500,14000,2000,1500,2000,0.01,0.4,100);//妤傛﹢?鐔兼毐濞堜絻鐭惧??7000瀹革箑褰哥捄婵堫瀲
-    //   // a[0]=0;
-    // }
-    /*===================================================================================================================
-                                                  路径规划相关
-    =====================================================================================================================*/
-    // if (Teaching_Pendant.Automatic_Switch == 1)
-    // {
-    //   // 自动路径相关
-    //   if(Teaching_Pendant.Route_Type == Route_Type1)
-    //   {
-    //     Chassis_Line_Route(2000,2000,0,1500,5000,2000,50,2000,0.01,0.4,100);
-    //   }
-    // }
-    // else
-    // {
-    // }
     // /*===================================================================================================================
     //                 车身自瞄，车身自瞄期间，车的朝向只能能处于[-90, 90]度之间（即只能朝向对面半场）
     // =====================================================================================================================*/
@@ -240,86 +220,6 @@ void StartDefaultTask(void *argument)
     /*===================================================================================================================
                                                   运球预选赛相关
     =====================================================================================================================*/
-    /*if (Teaching_Pendant_Data.Automatic_Switch && Teaching_Pendant.Automatic_Switch)
-    {
-      // 在运球预选赛，打开自动路径开关即开始跑全自动流程
-      if (Teaching_Pendant.Route_Type == Route_Type_0 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 起始点到S&E点，长路径
-        Chassis_Line_Route(2487, -2157, 0, 1500, 11000, 500, 50, 2000, 0.01, 0.5, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_1; // 运球后自动切换到第二个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_1 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // S&E点到第二个点，短路径
-        Chassis_Line_Route(1758, -2981, 0, 1500, 4000, 800, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_2; // 运球后自动切换到第三个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_2 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第二个点到第三个点，中路径
-        Chassis_Line_Route(1783, -4610, 0, 1500, 6000, 500, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_3; // 运球后自动切换到第四个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_3 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第三个点到第四个点，中路径
-        Chassis_Line_Route(3758, -4582, 0, 1500, 7000, 500, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_4; // 运球后自动切换到第五个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_4 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第四个点到第五个点，中路径
-        Chassis_Line_Route(5778, -4574, 0, 1500, 7000, 500, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_5; // 运球后自动切换到第六个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_5 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第五个点到第六个点，中路径
-        Chassis_Line_Route(5821, -2887, 0, 1500, 6000, 500, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_6; // 运球后自动切换到第七个点
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_6 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第六个点到第七个点，短路径
-        Chassis_Line_Route(5005, -2119, 0, 1500, 4000, 800, 50, 2000, 0.01, 0.4, 100);
-        Dribble_Twice();                            // 开启运球
-        Teaching_Pendant.Route_Type = Route_Type_7;
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_7 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // 第七个点到S&E点，直接冲过去，最后一个点不运球
-        Chassis_Line_Route(1000, -2157, 0, 1500, 7000, 500, 50, 2000, 0.01, 0.4, 100);
-        Teaching_Pendant.Route_Type = Route_Type_8;
-      }
-      if (Teaching_Pendant.Route_Type == Route_Type_8 && !Teaching_Pendant_Data.Reset_Confirm)
-      {
-        // S&E点左侧到出发点，此时已完赛，回出发点方便调试
-        Chassis_Line_Route(200, -200, 0, 1500, 5000, 1500, 50, 2000, 0.01, 0.4, 100);
-        Teaching_Pendant.Route_Type = Route_Type_0;
-        Teaching_Pendant.Automatic_Switch = 0;//跳出循环
-      }
-
-      if (Teaching_Pendant.Reset_Confirm && Teaching_Pendant_Data.Reset_Confirm)
-      {
-        Last_Route = Teaching_Pendant.Route_Type;//这里把Last_Route赋值为上一次的路径常量点
-        Teaching_Pendant.Route_Type = Route_Type_Reset;
-      }
-      // 如果运球运丢了，直接回reset点，长路径,操作手在看到车往回走后即可松手
-      if (Teaching_Pendant.Route_Type == Route_Type_Reset)
-      {
-        Teaching_Pendant.Reset_Confirm = 0;
-        Chassis_Line_Route(291, -2129, -90, 1500, 7000, 500, 50, 2000, 0.01, 0.4, 100);//这里回那两个视觉点
-        Teaching_Pendant.Route_Type = Last_Route;//这里从这两个视觉点回失误点前一个点时，那个参数要用Nearest_Vision_Point_Route的参数
-        Teaching_Pendant.Reset_Confirm = 1;
-      }
-    }*/
     osDelay(2);
   }
   /* USER CODE END StartDefaultTask */
@@ -349,14 +249,16 @@ void RoutTask(void *argument)
     // 检查是否到两个视觉识别点的函数，需要一直跑来检测
     Check_Near_Vision_Points(&Vision_Point_Flag, 20);
     // Dribble_Pre_Competition();
-    //  Dribble_Twice()
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-    // Chassis_Line_Route(2458, -2204, -90, 1500, 3000, 1700, 50, 500, 0.01f, 0.6f, 100, 25, 10);
-    //  FDCAN_Send_Data(&hfdcan1, 0x03F, Can_2_Data, &i, &Order_To_Subcontroller);
+    Dribble_Twice();
+    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     /*===================================================================================================================
-                                                  投球预选赛相关
+                                                  运球预选赛相关
     =====================================================================================================================*/
-    osDelay(2);
+    if (Competition_Mode == Competition_Mode_Dribble_Preliminary)
+    {
+      Dribble_Pre_Competition();
+    }
+    osDelay(2000);
   }
   /* USER CODE END RoutTask */
 }
@@ -435,3 +337,4 @@ void ReloadTask(void *argument)
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
+

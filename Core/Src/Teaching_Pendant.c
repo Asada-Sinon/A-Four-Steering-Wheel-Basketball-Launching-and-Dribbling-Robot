@@ -7,7 +7,6 @@
 uint8_t Teaching_Pendant_buffer[30];
 remote_control Teaching_Pendant = {.Death = -1, .Automatic_Switch = -1};//程序里面可以直接被刷掉的标志位
 remote_control Teaching_Pendant_Data;//手柄直接的数据
-Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant = {0, 0, 0};
 
 // 增强版手柄处理器
 static Enhanced_Teaching_Pendant_t enhanced_pendant;
@@ -443,9 +442,9 @@ Coordinate_Speed_Struct Get_Enhanced_Speed_From_Teaching_Pendant(void)
         Enhanced_Teaching_Pendant_Init();
     }
     // 第一步：归一化摇杆输入，这里是摇杆原始值的最大值，这里手柄最大值是6800（这里并不是车的最大速度）
-    float normalized_vx = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vx, 8000.0f);
-    float normalized_vy = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vy, 8000.0f);
-    float normalized_vw = Normalize_Joystick_Input(Speed_Data_From_Teaching_Pendant.Vw, 8000.0f);
+    float normalized_vx = Normalize_Joystick_Input(Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vx, 8000.0f);
+    float normalized_vy = Normalize_Joystick_Input(Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vy, 8000.0f);
+    float normalized_vw = Normalize_Joystick_Input(Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vw, 8000.0f);
     // 第二步：应用死区处理，为了处理手柄回中时的数字抖动
     normalized_vx = Apply_Deadzone(normalized_vx, enhanced_pendant.mapping_config.deadzone_threshold);
     normalized_vy = Apply_Deadzone(normalized_vy, enhanced_pendant.mapping_config.deadzone_threshold);
@@ -611,7 +610,7 @@ void Teaching_Pendant_Restart(void)
     HAL_UARTEx_ReceiveToIdle_DMA(&huart4, &Teaching_Pendant_buffer[0], 30);
     __HAL_DMA_DISABLE_IT(&hdma_uart4_rx, DMA_IT_HT);
 }
-//时代的眼泪了，自研的手柄的通讯协议，但是只有50hz频率太低了，故弃用
+//时代的眼泪了，这里写的是自研的手柄的通讯协议，但是只有50hz频率太低了，故弃用
 // void Teaching_Pendant_Data_Process(Teaching_Pendant_Data_Struct *Teaching_Pendant)
 // {
 //     Teaching_Pendant->Automatic_Switch = Teaching_Pendant->Teaching_Pendant_Rec_Data[1];
@@ -674,9 +673,9 @@ void HT10A_process(uint8_t buffer[30])
     // Teaching_Pendant_Data.x = (_channels[3] - 992) * 10;
     // Teaching_Pendant_Data.y = (_channels[2] - 992) * 10;
     // Teaching_Pendant_Data.z = (_channels[0] - 992) * 10;
-    Speed_Data_From_Teaching_Pendant.Vx = (_channels[3] - 992) * 10; // X方向速度
-    Speed_Data_From_Teaching_Pendant.Vy = (_channels[2] - 992) * 10; // Y方向速度
-    Speed_Data_From_Teaching_Pendant.Vw = (_channels[0] - 992) * 10; // 角速度
+    Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vx = (_channels[3] - 992) * 10; // X方向速度
+    Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vy = (_channels[2] - 992) * 10; // Y方向速度
+    Teaching_Pendant_Data.Speed_Data_From_Teaching_Pendant.Vw = (_channels[0] - 992) * 10; // 角速度
     // 四个开关
     Teaching_Pendant_Data.Fire = (_channels[4] - 992) / 800;
     Teaching_Pendant_Data.Automatic_Switch = (_channels[5] - 992) / 800;

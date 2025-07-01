@@ -21,16 +21,14 @@ typedef enum
 
 typedef enum
 {
-    Competition_Mode_Dribble_Preliminary = 1, // 运球预选赛
+    Competition_Mode_None, // 没有竞赛模式，日常调试挂这个挡位
+    Competition_Mode_Dribble_Preliminary, // 运球预选赛
     Competition_Mode_Shoot_Preliminary,       // 投球预选赛
     Competition_Mode_Final                    // 正赛
 } Competition_Mode_ENUM;
 
 typedef struct
 {
-    float x;
-    float y;
-    float z;
     // 这几个开关从左到右
     float Fire; // 三档带回弹，默认是0,Fire-1
     float Automatic_Switch; // 两档,自动-1/手动1切换
@@ -41,6 +39,7 @@ typedef struct
     float switch6; // 旋钮右
 
     uint8_t Route_Type; // 路径选择指令,这个不是从手柄收来的
+    Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant; // 手柄速度数据，经过处理之后的速度数据
     Coordinate_Speed_Struct Joystick_V; // 经过处理之后的数据，直接发送给分控的速度
 } remote_control;
 
@@ -88,7 +87,6 @@ typedef struct
 } Enhanced_Teaching_Pendant_t;
 
 
-extern Coordinate_Speed_Struct Speed_Data_From_Teaching_Pendant;
 extern remote_control Teaching_Pendant_Data; // 手柄数据结构体
 extern remote_control Teaching_Pendant; // 手柄数据结构体
 extern uint8_t Teaching_Pendant_buffer[30]; // 手柄数据接收缓冲区
