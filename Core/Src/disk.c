@@ -78,7 +78,7 @@ void Disk_Encoder_Data_Process(Disk_Encoder_Struct *Encoder)
     //Disk_Encoder.Cod.Chassis_Position_From_Disk.Y = -Disk_Encoder.Cod.Disk_Position.Y - Disk_Encoder.Cod.RE_Y + Eccentric.Y;
     Disk_Encoder.Cod.Chassis_Position_From_Disk.X = Encoder->Cod.RE_X;
     Disk_Encoder.Cod.Chassis_Position_From_Disk.Y = Encoder->Cod.RE_Y;
-    Computer_Vision_Data.LiDAR.X = Encoder->Cod.Chassis_Position_From_Disk.X;
-    Computer_Vision_Data.LiDAR.Y = Encoder->Cod.Chassis_Position_From_Disk.Y;
+    Computer_Vision_Data.LiDAR.X = -Encoder->Cod.Chassis_Position_From_Disk.X;
+    Computer_Vision_Data.LiDAR.Y = -Encoder->Cod.Chassis_Position_From_Disk.Y;
     Computer_Vision_Data.LiDAR.W = Encoder->Yaw.World_Rotation_Angle;
 }

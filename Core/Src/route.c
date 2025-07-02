@@ -2141,7 +2141,7 @@ void Shoot_Pre_Competition(void)
 
 //         if (X_remain > 5.0f)
 //         {
-//             if (X_remain >= 500.0f)
+//             if (X_remain >= 200.0f)
 //             {
 //                 // 大距离时动态调整PID参数
 //                 float dynamic_kp = X_remain / 10.0f;
@@ -2150,7 +2150,7 @@ void Shoot_Pre_Competition(void)
 //                 Keep_X_PID.Kp = dynamic_kp;
 //                 Keep_X_PID.Ki = 0.0f;
 //                 Keep_X_PID.Kd = 0.0f;
-//                 Keep_X_PID.Forward = 0.0f; // 前馈补偿
+//                 Keep_X_PID.Forward = 2000.0f; // 前馈补偿
 
 //                 // 使用缩放后的位置进行PID计算
 //                 float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
@@ -2161,24 +2161,20 @@ void Shoot_Pre_Competition(void)
 //                 // 限制输出速度
 //                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
 //             }
-//             else if (X_remain >= 400.0f && X_remain < 500.0f)
-//             {
-//                 Keep_X_PID.Output = -1500;
-//             }
 //             else // X_remain < 200
 //             {
 //                 // 小距离时使用固定PID参数
-//                 Keep_X_PID.Kp = 5.0f;
+//                 Keep_X_PID.Kp = 12.0f;
 //                 Keep_X_PID.Ki = 0.0f;
 //                 Keep_X_PID.Kd = 0.0f;
-//                 Keep_X_PID.Forward = 510.0f; // 前馈补偿
+//                 Keep_X_PID.Forward = 0.0f; // 前馈补偿
 
 //                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
 //                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
 //                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
 
 //                 // 限制输出速度
-//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -1000.0f, 1000.0f);
+//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -2500.0f, 2500.0f);
 
 //                 // 添加前馈补偿（根据原代码逻辑）
 //                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
@@ -2190,13 +2186,15 @@ void Shoot_Pre_Competition(void)
 //                 //     Keep_X_PID.Output -= 100.0f;
 //                 // }
 
-//                 if (ABS(Route_Status.Coordinate_System.Line_Target_V.Vx) < 500.0f)
-//                 {
-//                     Keep_X_PID.Output = 0.0f;
-//                 }
 //             }
 
-//             Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+//             // if (ABS(Keep_X_PID.Output) < 600.0f)
+//             // {
+//             //     Keep_X_PID.Output = 0.0f;
+//             // }
+
+//             // Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+//                         Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
 //         }
 //         else
 //         {
@@ -2218,19 +2216,28 @@ void Shoot_Pre_Competition(void)
 
 //         float angle_remain = Safe_fabs(angle_error);
 
-//         if (angle_remain > 1.0f)
+//         if (angle_remain > 0.5f)
 //         {
-//             Keep_W_PID.Kp = 20.0f;
+//             Keep_W_PID.Kp = 100.0f;
 //             Keep_W_PID.Ki = 0.0f;
 //             Keep_W_PID.Kd = 0.0f;
-//             Keep_X_PID.Forward = 0.0f; // 前馈补偿
+//             Keep_X_PID.Forward = 1000.0f; // 前馈补偿
 
-//             PID_Calculate_Positional_With_Forward(&Keep_W_PID, angle_error, 0.0f);
+//             PID_Calculate_Positional_With_Forward(&Keep_W_PID,  World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
 
 //             // 限制角速度输出
-//             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -4000.0f, 4000.0f);
 
-//             Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // Keep_W_PID.Output;
+//             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
+
+//             // if( ABS(Keep_W_PID.Output) > 900)
+//             // {
+//             // Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
+//             // }else{
+//             //     Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // 如果角速度小于500则不转
+//             // }
+
+//             Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
+
 //         }
 //         else
 //         {
@@ -2256,7 +2263,7 @@ void Shoot_Pre_Competition(void)
 //                                                 停止判断
 //         ---------------------------------------------------------------------------------------------------------------*/
 //         // 当X方向误差小于阈值时停止
-//         if (X_remain <= 5.0f) //&& angle_remain <= 1.0f)
+//         if (angle_remain <= 0.5f)
 //         {
 //             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
 //             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
@@ -2280,6 +2287,9 @@ void Shoot_Pre_Competition(void)
 //         osDelay(2); // RTOS任务调度延时
 //     }
 // }
+
+
+//这套参数Limit_Speed取12500
 void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
 {
     // PID_Struct Keep_X_PID;
@@ -2349,44 +2359,40 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
 
         if (X_remain > 5.0f)
         {
-            if (X_remain >= 500.0f)
+            if (X_remain >= 200.0f)
             {
                 // 大距离时动态调整PID参数
-                float dynamic_kp = X_remain / 10.0f;
+                float dynamic_kp = X_remain / 15.0f;
                 // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
 
                 Keep_X_PID.Kp = dynamic_kp;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 0.0f; // 前馈补偿
+                Keep_X_PID.Forward = 2500.0f; // 前馈补偿
 
                 // 使用缩放后的位置进行PID计算
-                float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
-                float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 10.0f;
+                float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 15.0f;
+                float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 15.0f;
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
 
                 // 限制输出速度
                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
             }
-            else if (X_remain >= 100.0f && X_remain < 500.0f)
-            {
-                Keep_X_PID.Output = -800;
-            }
             else // X_remain < 200
             {
                 // 小距离时使用固定PID参数
-                Keep_X_PID.Kp = 5.0f;
+                Keep_X_PID.Kp = 15.0f;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 510.0f; // 前馈补偿
+                Keep_X_PID.Forward = -10.0f; // 前馈补偿
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
 
                 // 限制输出速度
-                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -1000.0f, 1000.0f);
+                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -2500.0f, 2500.0f);
 
                 // 添加前馈补偿（根据原代码逻辑）
                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
@@ -2398,11 +2404,12 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                 //     Keep_X_PID.Output -= 100.0f;
                 // }
 
-                if (ABS(Route_Status.Coordinate_System.Line_Target_V.Vx) < 500.0f)
-                {
-                    Keep_X_PID.Output = 0.0f;
-                }
             }
+
+            // if (ABS(Keep_X_PID.Output) < 600.0f)
+            // {
+            //     Keep_X_PID.Output = 0.0f;
+            // }
 
             Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
         }
@@ -2426,19 +2433,19 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
 
         float angle_remain = Safe_fabs(angle_error);
 
-        if (angle_remain > 1.0f)
+        if (angle_remain > 0.5f)
         {
-            Keep_W_PID.Kp = 20.0f;
+            Keep_W_PID.Kp = 100.0f;
             Keep_W_PID.Ki = 0.0f;
             Keep_W_PID.Kd = 0.0f;
-            Keep_X_PID.Forward = 0.0f; // 前馈补偿
+            Keep_X_PID.Forward = 1000.0f; // 前馈补偿
 
-            PID_Calculate_Positional_With_Forward(&Keep_W_PID, angle_error, 0.0f);
+            PID_Calculate_Positional_With_Forward(&Keep_W_PID,  World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
 
             // 限制角速度输出
-            Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -4000.0f, 4000.0f);
+            Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
 
-            Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // Keep_W_PID.Output;
+            Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;; // Keep_W_PID.Output;
         }
         else
         {
@@ -2464,7 +2471,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 停止判断
         ---------------------------------------------------------------------------------------------------------------*/
         // 当X方向误差小于阈值时停止
-        if (X_remain <= 5.0f) //&& angle_remain <= 1.0f)
+        if (X_remain <= 5.0f && angle_remain <= 0.5f) //&& angle_remain <= 1.0f)
         {
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
@@ -2488,3 +2495,6 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
         osDelay(2); // RTOS任务调度延时
     }
 }
+
+
+

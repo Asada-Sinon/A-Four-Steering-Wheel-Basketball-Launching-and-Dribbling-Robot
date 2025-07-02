@@ -224,7 +224,7 @@ void StartDefaultTask(void *argument)
     =====================================================================================================================*/
     if (route_Test[0] == 1)
     {
-      Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 10000);
+      Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 12500);
       route_Test[0] = 0; // 重置标志位
     }
     osDelay(2);
@@ -284,8 +284,8 @@ void RoutTask(void *argument)
     // 检查是否到两个视觉识别点的函数，需要一直跑来检测
     Check_Near_Vision_Points(&Vision_Point_Flag, 20);
     // Dribble_Pre_Competition();
-    Dribble_Twice();
-    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+    //Dribble_Twice();
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     /*===================================================================================================================
                                                   运球预选赛相关
     =====================================================================================================================*/
@@ -293,7 +293,7 @@ void RoutTask(void *argument)
     {
       Dribble_Pre_Competition();
     }
-    osDelay(2000);
+    osDelay(2);
   }
   /* USER CODE END RoutTask */
 }
