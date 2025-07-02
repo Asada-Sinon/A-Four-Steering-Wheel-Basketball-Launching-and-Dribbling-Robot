@@ -10,7 +10,7 @@
 typedef struct
 {
     uint8_t Wheel_Break; // 车轮刹车命令，0为继续，1分控那边调用刹车函数
-    uint8_t Order_1; // 车轮速度命令，0为继续，1分控那边调用速度函数
+    uint8_t Wheel_Lock; // 车轮速度命令，0为继续，1分控那边调用速度函数
     uint8_t Order_2; // 车轮方向命令，0为继续，1分控那边调用方向函数
     uint8_t Order_3; // 车轮方向命令，0为继续，1分控那边调用方向函数
 } Order_To_Subcontroller_Struct; // Kinect相机数据结构体

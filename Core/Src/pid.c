@@ -79,3 +79,21 @@ void PID_Clear (PID_Struct *PID)
 	PID->LastError = 0;
 	PID->Output = 0;
 }
+//带前馈的PID计算
+void PID_Calculate_Positional_With_Forward(PID_Struct *PID, float Measure, float Target)
+{
+    PID->Measure = Measure;
+    PID->Target = Target;
+    PID->Error = Target - Measure;
+
+    // PID三项计算
+    PID->P_out = PID->Kp * PID->Error;
+    PID->I_out = PID->Ki * PID->Error + PID->I_out;
+    PID->D_out = PID->Kd * (PID->Error - PID->LastError);;
+    
+    // 总输出 = PID输出 + 前馈输出
+    PID->Output = PID->P_out + PID->I_out + PID->D_out + (PID->Error > 0 ? PID->Forward : -PID->Forward);
+
+    PID->LastLastError = PID->LastError;
+    PID->LastError = PID->Error;
+}

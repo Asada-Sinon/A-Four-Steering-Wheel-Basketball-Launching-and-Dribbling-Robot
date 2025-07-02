@@ -11,6 +11,7 @@ typedef struct
     float Kp;
     float Ki;
     float Kd;
+    float Forward;//前馈
     float P_out;
     float I_out;
     float D_out;
@@ -38,6 +39,7 @@ void PID_Calculate_Incremental(PID_Struct *PID, float Measure, float Target);
 void PID_Calculate_Positional(PID_Struct *PID, float Measure, float Target);
 void Motor_DJI_Angle_PID_Output_Calculate(Motor_Struct *Motor_DJI, int32_t Angle);
 void Motor_DJI_Speed_PID_Output_Calculate(Motor_Struct *Motor_DJI, int16_t Speed);
+void PID_Calculate_Positional_With_Forward(PID_Struct *PID, float Measure, float Target);
 void PID_Clear(PID_Struct *PID);
 
 #endif

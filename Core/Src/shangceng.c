@@ -45,7 +45,7 @@ void Dribble_Twice() // 运球赛运球
 	osDelay(1000);
 
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(300);
+	osDelay(500);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	   // 大气缸推球
 	osDelay(300);
@@ -55,9 +55,9 @@ void Dribble_Twice() // 运球赛运球
 	// 连续两次运球中间间隔时间
 	//git test
 	// osDelay(1500);
-	osDelay(400);
+	osDelay(1000);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(350);
+	osDelay(500);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	   // 大气缸推球
 	osDelay(300);

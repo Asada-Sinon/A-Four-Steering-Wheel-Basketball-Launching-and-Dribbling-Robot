@@ -107,7 +107,7 @@ void FDCAN_Send_Data(FDCAN_HandleTypeDef *hfdcan, uint16_t ID, uint8_t Data[16],
     Data[11] = (uint8_t)(vw_bits >> 24);
 
     Data[12] = (uint8_t)(Order->Wheel_Break);
-    Data[13] = (uint8_t)(Order->Order_1);
+    Data[13] = (uint8_t)(Order->Wheel_Lock);
     Data[14] = (uint8_t)(Order->Order_2);
     Data[15] = (uint8_t)(Order->Order_3);
     // 发送数据到FDCAN

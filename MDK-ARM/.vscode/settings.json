@@ -9,6 +9,7 @@
         "mycan.h": "c",
         "typeinfo": "c",
         "armdsp.h": "c",
-        "arm_math.h": "c"
+        "arm_math.h": "c",
+        "computer_vision.h": "c"
     }
 }

@@ -70,16 +70,16 @@ Coordinate_Position_Struct Zero_Point = {0, 0, 0};         // 世界坐标系零
 
 Route_STU Route_Status; // 路径结构体
 
-PID_Struct Line_AdjustPID; // 直线法向pid调节
-PID_Struct Line_StopPID;   // 直线停止区切向pid调节
-PID_Struct Line_AnglePID;  // 直线停止区角度pid调节
-PID_Struct Cir_AdjustPID;  // 圆弧法向pid调节
-PID_Struct Cir_StopPID;    // 圆弧停止区切向pid调节
-PID_Struct Cir_AnglePID;   // 圆弧角度pid调节
-PID_Struct Keep_X_PID;     // 保持x方向位置
-PID_Struct Keep_Y_PID;     // 保持y方向位置
-PID_Struct Keep_W_PID;     // 保持角度
-PID_Struct Automatic_Aiming_PID;                                  // 自瞄pid
+PID_Struct Line_AdjustPID;       // 直线法向pid调节
+PID_Struct Line_StopPID;         // 直线停止区切向pid调节
+PID_Struct Line_AnglePID;        // 直线停止区角度pid调节
+PID_Struct Cir_AdjustPID;        // 圆弧法向pid调节
+PID_Struct Cir_StopPID;          // 圆弧停止区切向pid调节
+PID_Struct Cir_AnglePID;         // 圆弧角度pid调节
+PID_Struct Keep_X_PID;           // 保持x方向位置
+PID_Struct Keep_Y_PID;           // 保持y方向位置
+PID_Struct Keep_W_PID;           // 保持角度
+PID_Struct Automatic_Aiming_PID; // 自瞄pid
 
 float Angle_Aim = 0; // 目标角度值（绝对角度），中间变量
 // float Angle_Offset = 0; // 删除：剩余要转的角度，改用 Status->Parameter.Abs_Angle_Error
@@ -1237,63 +1237,63 @@ void Variable_Element_Route(Coordinate_Position_Struct *Target_Point)
 void Dribble_Pre_Competition(void)
 {
     // 在运球预选赛，打开自动路径开关即开始跑全自动流程
-    if (Teaching_Pendant_Data.Automatic_Switch == -1 && Teaching_Pendant.Automatic_Switch == -1)
+    // if (Teaching_Pendant_Data.Automatic_Switch == -1 && Teaching_Pendant.Automatic_Switch == -1)
+    // {
+    // 处理重置确认
+    if (Teaching_Pendant.Death == -1 && Teaching_Pendant_Data.Death == -1)
     {
-        // 处理重置确认
-        if (Teaching_Pendant.Death == -1 && Teaching_Pendant_Data.Death == -1)
+        Last_Route = Teaching_Pendant.Route_Type;
+        Teaching_Pendant.Route_Type = Route_Type_Reset;
+    }
+    // 如果需要复位（运球运丢了）
+    if (Teaching_Pendant.Route_Type == Route_Type_Reset)
+    {
+        Teaching_Pendant.Death = 0;
+        // 调用最近视觉点路径函数，自动选择最近的视觉点
+        Nearest_Vision_Point_Route();
+        osDelay(1000);
+        Teaching_Pendant.Death = -1;
+        Teaching_Pendant.Route_Type = Last_Route;
+        Variable_Element_Route(&Last_Point);
+        // 适用于运球运丢了的情况
+        Dribble_Twice();
+    }
+    // 正常路径执行
+    else if (Teaching_Pendant_Data.Death != -1)
+    {
+        // 获取路径类型索引（注意路径类型枚举从0开始）
+        uint8_t route_index = Teaching_Pendant.Route_Type;
+        // 检查索引有效性
+        if (route_index < sizeof(PATH_POINTS) / sizeof(PATH_POINTS[0]))
         {
-            Last_Route = Teaching_Pendant.Route_Type;
-            Teaching_Pendant.Route_Type = Route_Type_Reset;
-        }
-        // 如果需要复位（运球运丢了）
-        if (Teaching_Pendant.Route_Type == Route_Type_Reset)
-        {
-            Teaching_Pendant.Death = 0;
-            // 调用最近视觉点路径函数，自动选择最近的视觉点
-            Nearest_Vision_Point_Route();
-            osDelay(1000);
-            Teaching_Pendant.Death = -1;
-            Teaching_Pendant.Route_Type = Last_Route;
-            Variable_Element_Route(&Last_Point);
-            // 适用于运球运丢了的情况
-            Dribble_Twice();
-        }
-        // 正常路径执行
-        else if (Teaching_Pendant_Data.Death != -1)
-        {
-            // 获取路径类型索引（注意路径类型枚举从0开始）
-            uint8_t route_index = Teaching_Pendant.Route_Type;
-            // 检查索引有效性
-            if (route_index < sizeof(PATH_POINTS) / sizeof(PATH_POINTS[0]))
+            const RoutePoint *current = &PATH_POINTS[route_index];
+            // 执行路径
+            Chassis_Line_Route(
+                current->X, current->Y, current->W, current->start_speed,
+                current->max_speed, current->end_speed, current->min_speed,
+                current->max_w, current->up_rate, current->down_rate,
+                current->stop_area, current->Kp, current->Kd);
+            // 如果需要运球
+            if (current->needs_dribble)
             {
-                const RoutePoint *current = &PATH_POINTS[route_index];
-                // 执行路径
-                Chassis_Line_Route(
-                    current->X, current->Y, current->W, current->start_speed,
-                    current->max_speed, current->end_speed, current->min_speed,
-                    current->max_w, current->up_rate, current->down_rate,
-                    current->stop_area, current->Kp, current->Kd);
-                // 如果需要运球
-                if (current->needs_dribble)
-                {
-                    Dribble_Twice();
-                }
-                // 设置下一路径点
-                if (Teaching_Pendant.Route_Type == Route_Type_8)
-                {
-                    Teaching_Pendant.Route_Type = Route_Type_0;
-                    Teaching_Pendant.Automatic_Switch = 0; // 完成所有路径，关闭自动模式
-                }
-                else
-                {
-                    Last_Point.X = current->X;
-                    Last_Point.Y = current->Y;
-                    Last_Point.W = current->W;
-                    Teaching_Pendant.Route_Type++; // 切换到下一路径点
-                }
+                Dribble_Twice();
+            }
+            // 设置下一路径点
+            if (Teaching_Pendant.Route_Type == Route_Type_8)
+            {
+                Teaching_Pendant.Route_Type = Route_Type_0;
+                Teaching_Pendant.Automatic_Switch = 0; // 完成所有路径，关闭自动模式
+            }
+            else
+            {
+                Last_Point.X = current->X;
+                Last_Point.Y = current->Y;
+                Last_Point.W = current->W;
+                Teaching_Pendant.Route_Type++; // 切换到下一路径点
             }
         }
     }
+    //}
 }
 
 /*********************************************************************************
@@ -1330,8 +1330,8 @@ void Nearest_Vision_Point_Route(void)
 =====================================================================================================================*/
 
 Coordinate_Position_Struct Pre_Basket_Position = {-3660, -790, 0}; // 预选赛世界坐标系篮筐位置
-Coordinate_Position_Struct Basket_Position = {2000, 6000, 0};     // 正赛世界坐标系篮筐位置
-Coordinate_Position_Struct Data_For_Automatic_Aiming;             // 算角度的中间变量，X和Y存的是篮筐位置和现在位置的差值，W存的是世界坐标系下目标角度的绝对角度
+Coordinate_Position_Struct Basket_Position = {2000, 6000, 0};      // 正赛世界坐标系篮筐位置
+Coordinate_Position_Struct Data_For_Automatic_Aiming;              // 算角度的中间变量，X和Y存的是篮筐位置和现在位置的差值，W存的是世界坐标系下目标角度的绝对角度
 /*********************************************************************************
  * @name    Automatic_Aiming_W_Calculate
  * @brief   计算自动瞄准所需的目标角度
@@ -2058,4 +2058,433 @@ float A1_Remember_Pos = 0; // 在最后定点的时候记住操作手微调的�
  *********************************************************************************/
 void Shoot_Pre_Competition(void)
 {
+}
+
+/*********************************************************************************
+ * @name   Keep_Position_Speed
+ * @brief  保持位置和速度控制函数，使用PID控制到达指定位置并保持
+ * @param  Target_X: 目标X坐标
+ * @param  Target_Y: 目标Y坐标
+ * @param  Target_W: 目标角度
+ * @param  Limit_Speed: 限制速度
+ * @details 该函数实现位置保持控制，包含：
+ *          1. 动态PID参数调整（根据距离调整Kp值）
+ *          2. X方向位置控制和角度控制
+ *          3. 速度限幅和停止判断
+ *********************************************************************************/
+// void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
+// {
+//     // PID_Struct Keep_X_PID;
+//     //  初始化路径状态
+//     Order_To_Subcontroller.Wheel_Break = 0;
+//     Order_To_Subcontroller.Wheel_Lock = 0;
+
+//     // 设置起始位置为当前位置
+//     Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
+//     Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
+//     Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+
+//     // 设置目标位置
+//     Route_Status.Coordinate_System.Target_Position.X = Target_X;
+//     Route_Status.Coordinate_System.Target_Position.Y = Target_Y;
+//     Route_Status.Coordinate_System.Target_Position.W = Safe_Angle_Normalization(Target_W);
+
+//     // 启动工作标志
+//     Route_Status.Flag.Work_Start = ENABLE;
+
+//     // 清除PID误差
+//     PID_Clear(&Keep_X_PID);
+//     PID_Clear(&Keep_Y_PID);
+//     PID_Clear(&Keep_W_PID);
+
+//     /*===================================================================================================================
+//                                                 位置保持控制循环
+//     =====================================================================================================================*/
+//     while (Route_Status.Flag.Work_Start)
+//     {
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系更新
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 更新当前世界坐标
+//         World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
+//         World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
+//         World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+
+//         // 更新起始位置（实时更新，便于小幅调整）
+//         Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
+//         Route_Status.Coordinate_System.Start_Position.Y = World_Coordinate_System_NowPos.Y;
+//         Route_Status.Coordinate_System.Start_Position.W = World_Coordinate_System_NowPos.W;
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系转换
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 计算线坐标系角度
+//         Line_Angle = Calculate_Line_Angle(Route_Status.Coordinate_System.Start_Position,
+//                                           Route_Status.Coordinate_System.Target_Position);
+
+//         // 转换到线坐标系
+//         Route_Status.Coordinate_System.Line_Target_Position =
+//             Position_Coordinate_Transformation(&Route_Status.Coordinate_System.Target_Position,
+//                                                &Route_Status.Coordinate_System.Start_Position,
+//                                                Line_Angle);
+
+//         Route_Status.Coordinate_System.Line_Now_Position =
+//             Position_Coordinate_Transformation(&World_Coordinate_System_NowPos,
+//                                                &Route_Status.Coordinate_System.Start_Position,
+//                                                Line_Angle);
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 X方向位置控制
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         float X_remain = Safe_fabs(Route_Status.Coordinate_System.Line_Target_Position.X -
+//                                    Route_Status.Coordinate_System.Line_Now_Position.X);
+
+//         if (X_remain > 5.0f)
+//         {
+//             if (X_remain >= 500.0f)
+//             {
+//                 // 大距离时动态调整PID参数
+//                 float dynamic_kp = X_remain / 10.0f;
+//                 // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
+
+//                 Keep_X_PID.Kp = dynamic_kp;
+//                 Keep_X_PID.Ki = 0.0f;
+//                 Keep_X_PID.Kd = 0.0f;
+//                 Keep_X_PID.Forward = 0.0f; // 前馈补偿
+
+//                 // 使用缩放后的位置进行PID计算
+//                 float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
+//                 float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 10.0f;
+
+//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
+
+//                 // 限制输出速度
+//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
+//             }
+//             else if (X_remain >= 400.0f && X_remain < 500.0f)
+//             {
+//                 Keep_X_PID.Output = -1500;
+//             }
+//             else // X_remain < 200
+//             {
+//                 // 小距离时使用固定PID参数
+//                 Keep_X_PID.Kp = 5.0f;
+//                 Keep_X_PID.Ki = 0.0f;
+//                 Keep_X_PID.Kd = 0.0f;
+//                 Keep_X_PID.Forward = 510.0f; // 前馈补偿
+
+//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
+//                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
+//                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
+
+//                 // 限制输出速度
+//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -1000.0f, 1000.0f);
+
+//                 // 添加前馈补偿（根据原代码逻辑）
+//                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
+//                 // {
+//                 //     Keep_X_PID.Output += 100.0f;
+//                 // }
+//                 // else if (Keep_X_PID.Output < 0 && Keep_X_PID.Output > -900.0f)
+//                 // {
+//                 //     Keep_X_PID.Output -= 100.0f;
+//                 // }
+
+//                 if (ABS(Route_Status.Coordinate_System.Line_Target_V.Vx) < 500.0f)
+//                 {
+//                     Keep_X_PID.Output = 0.0f;
+//                 }
+//             }
+
+//             Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+//         }
+//         else
+//         {
+//             Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
+//         }
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 Y方向位置控制（保持为0）
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         Route_Status.Coordinate_System.Line_Target_V.Vy = 0.0f;
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 角度控制
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 使用改进的角度误差计算
+//         float angle_error = Calculate_Angle_Error_With_Direction(
+//             Route_Status.Coordinate_System.Target_Position.W,
+//             World_Coordinate_System_NowPos.W);
+
+//         float angle_remain = Safe_fabs(angle_error);
+
+//         if (angle_remain > 1.0f)
+//         {
+//             Keep_W_PID.Kp = 20.0f;
+//             Keep_W_PID.Ki = 0.0f;
+//             Keep_W_PID.Kd = 0.0f;
+//             Keep_X_PID.Forward = 0.0f; // 前馈补偿
+
+//             PID_Calculate_Positional_With_Forward(&Keep_W_PID, angle_error, 0.0f);
+
+//             // 限制角速度输出
+//             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -4000.0f, 4000.0f);
+
+//             Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // Keep_W_PID.Output;
+//         }
+//         else
+//         {
+//             Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f;
+//         }
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系转换到机器人坐标系
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 将线坐标系速度转换为世界坐标系速度
+//         Route_Status.Coordinate_System.World_Coordinate_System_Target_V =
+//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.Line_Target_V,
+//                                             &Route_Status.Coordinate_System.Zero_Speed,
+//                                             -Line_Angle);
+
+//         // 将世界坐标系速度转换为机器人坐标系速度
+//         Route_Status.Coordinate_System.Robot_Coordinate_System_V =
+//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.World_Coordinate_System_Target_V,
+//                                             &Route_Status.Coordinate_System.Zero_Speed,
+//                                             World_Coordinate_System_NowPos.W);
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 停止判断
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 当X方向误差小于阈值时停止
+//         if (X_remain <= 5.0f) //&& angle_remain <= 1.0f)
+//         {
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0.0f;
+
+//             Order_To_Subcontroller.Wheel_Lock = 1; // 刹车
+//             Route_Status.Flag.Work_Start = DISABLE;
+//         }
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 紧急退出处理
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
+//         // {
+//         //     // 紧急停止
+//         //     Route_Status.Flag.Work_Start = DISABLE;
+//         //     Order_To_Subcontroller.Wheel_Break = 1;
+//         //     break;
+//         // }
+
+//         osDelay(2); // RTOS任务调度延时
+//     }
+// }
+void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
+{
+    // PID_Struct Keep_X_PID;
+    //  初始化路径状态
+    Order_To_Subcontroller.Wheel_Break = 0;
+    Order_To_Subcontroller.Wheel_Lock = 0;
+
+    // 设置起始位置为当前位置
+    Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
+    Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
+    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+
+    // 设置目标位置
+    Route_Status.Coordinate_System.Target_Position.X = Target_X;
+    Route_Status.Coordinate_System.Target_Position.Y = Target_Y;
+    Route_Status.Coordinate_System.Target_Position.W = Safe_Angle_Normalization(Target_W);
+
+    // 启动工作标志
+    Route_Status.Flag.Work_Start = ENABLE;
+
+    // 清除PID误差
+    PID_Clear(&Keep_X_PID);
+    PID_Clear(&Keep_Y_PID);
+    PID_Clear(&Keep_W_PID);
+
+    /*===================================================================================================================
+                                                位置保持控制循环
+    =====================================================================================================================*/
+    while (Route_Status.Flag.Work_Start)
+    {
+        /*---------------------------------------------------------------------------------------------------------------
+                                                坐标系更新
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 更新当前世界坐标
+        World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
+        World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
+        World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+
+        // 更新起始位置（实时更新，便于小幅调整）
+        Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
+        Route_Status.Coordinate_System.Start_Position.Y = World_Coordinate_System_NowPos.Y;
+        Route_Status.Coordinate_System.Start_Position.W = World_Coordinate_System_NowPos.W;
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                坐标系转换
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 计算线坐标系角度
+        Line_Angle = Calculate_Line_Angle(Route_Status.Coordinate_System.Start_Position,
+                                          Route_Status.Coordinate_System.Target_Position);
+
+        // 转换到线坐标系
+        Route_Status.Coordinate_System.Line_Target_Position =
+            Position_Coordinate_Transformation(&Route_Status.Coordinate_System.Target_Position,
+                                               &Route_Status.Coordinate_System.Start_Position,
+                                               Line_Angle);
+
+        Route_Status.Coordinate_System.Line_Now_Position =
+            Position_Coordinate_Transformation(&World_Coordinate_System_NowPos,
+                                               &Route_Status.Coordinate_System.Start_Position,
+                                               Line_Angle);
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                X方向位置控制
+        ---------------------------------------------------------------------------------------------------------------*/
+        float X_remain = Safe_fabs(Route_Status.Coordinate_System.Line_Target_Position.X -
+                                   Route_Status.Coordinate_System.Line_Now_Position.X);
+
+        if (X_remain > 5.0f)
+        {
+            if (X_remain >= 500.0f)
+            {
+                // 大距离时动态调整PID参数
+                float dynamic_kp = X_remain / 10.0f;
+                // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
+
+                Keep_X_PID.Kp = dynamic_kp;
+                Keep_X_PID.Ki = 0.0f;
+                Keep_X_PID.Kd = 0.0f;
+                Keep_X_PID.Forward = 0.0f; // 前馈补偿
+
+                // 使用缩放后的位置进行PID计算
+                float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
+                float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 10.0f;
+
+                PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
+
+                // 限制输出速度
+                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
+            }
+            else if (X_remain >= 100.0f && X_remain < 500.0f)
+            {
+                Keep_X_PID.Output = -800;
+            }
+            else // X_remain < 200
+            {
+                // 小距离时使用固定PID参数
+                Keep_X_PID.Kp = 5.0f;
+                Keep_X_PID.Ki = 0.0f;
+                Keep_X_PID.Kd = 0.0f;
+                Keep_X_PID.Forward = 510.0f; // 前馈补偿
+
+                PID_Calculate_Positional_With_Forward(&Keep_X_PID,
+                                                      Route_Status.Coordinate_System.Line_Now_Position.X,
+                                                      Route_Status.Coordinate_System.Line_Target_Position.X);
+
+                // 限制输出速度
+                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -1000.0f, 1000.0f);
+
+                // 添加前馈补偿（根据原代码逻辑）
+                // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
+                // {
+                //     Keep_X_PID.Output += 100.0f;
+                // }
+                // else if (Keep_X_PID.Output < 0 && Keep_X_PID.Output > -900.0f)
+                // {
+                //     Keep_X_PID.Output -= 100.0f;
+                // }
+
+                if (ABS(Route_Status.Coordinate_System.Line_Target_V.Vx) < 500.0f)
+                {
+                    Keep_X_PID.Output = 0.0f;
+                }
+            }
+
+            Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+        }
+        else
+        {
+            Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
+        }
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                Y方向位置控制（保持为0）
+        ---------------------------------------------------------------------------------------------------------------*/
+        Route_Status.Coordinate_System.Line_Target_V.Vy = 0.0f;
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                角度控制
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 使用改进的角度误差计算
+        float angle_error = Calculate_Angle_Error_With_Direction(
+            Route_Status.Coordinate_System.Target_Position.W,
+            World_Coordinate_System_NowPos.W);
+
+        float angle_remain = Safe_fabs(angle_error);
+
+        if (angle_remain > 1.0f)
+        {
+            Keep_W_PID.Kp = 20.0f;
+            Keep_W_PID.Ki = 0.0f;
+            Keep_W_PID.Kd = 0.0f;
+            Keep_X_PID.Forward = 0.0f; // 前馈补偿
+
+            PID_Calculate_Positional_With_Forward(&Keep_W_PID, angle_error, 0.0f);
+
+            // 限制角速度输出
+            Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -4000.0f, 4000.0f);
+
+            Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // Keep_W_PID.Output;
+        }
+        else
+        {
+            Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f;
+        }
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                坐标系转换到机器人坐标系
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 将线坐标系速度转换为世界坐标系速度
+        Route_Status.Coordinate_System.World_Coordinate_System_Target_V =
+            Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.Line_Target_V,
+                                            &Route_Status.Coordinate_System.Zero_Speed,
+                                            -Line_Angle);
+
+        // 将世界坐标系速度转换为机器人坐标系速度
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V =
+            Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.World_Coordinate_System_Target_V,
+                                            &Route_Status.Coordinate_System.Zero_Speed,
+                                            World_Coordinate_System_NowPos.W);
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                停止判断
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 当X方向误差小于阈值时停止
+        if (X_remain <= 5.0f) //&& angle_remain <= 1.0f)
+        {
+            Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
+            Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
+            Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0.0f;
+
+            Order_To_Subcontroller.Wheel_Lock = 1; // 刹车
+            Route_Status.Flag.Work_Start = DISABLE;
+        }
+
+        /*---------------------------------------------------------------------------------------------------------------
+                                                紧急退出处理
+        ---------------------------------------------------------------------------------------------------------------*/
+        // if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
+        // {
+        //     // 紧急停止
+        //     Route_Status.Flag.Work_Start = DISABLE;
+        //     Order_To_Subcontroller.Wheel_Break = 1;
+        //     break;
+        // }
+
+        osDelay(2); // RTOS任务调度延时
+    }
 }
