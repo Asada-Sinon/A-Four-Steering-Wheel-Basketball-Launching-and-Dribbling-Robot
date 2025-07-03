@@ -1138,7 +1138,6 @@ void Route_Init(void)
     PID_Init_Each(&Keep_X_PID, 0.5f, 0.0f, 0.0f);
     PID_Init_Each(&Keep_Y_PID, 0.5f, 0.0f, 0.0f);
     PID_Init_Each(&Keep_W_PID, 0.5f, 0.0f, 0.0f);
-    PID_Init_Each(&Automatic_Aiming_PID, 20.0f, 0.0f, 15.0f);
 }
 
 /*===================================================================================================================

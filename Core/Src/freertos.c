@@ -224,7 +224,48 @@ void StartDefaultTask(void *argument)
     =====================================================================================================================*/
     if (route_Test[0] == 1)
     {
-      Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 12500);
+      Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_OUT; // 运球装置拉到最外面
+      Keep_Position_Speed(-728, -772, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+
+      Keep_Position_Speed(-717, -2501, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+
+      Keep_Position_Speed(1307, -2462, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+      // Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 12500);
+
+      Keep_Position_Speed(3319, -2444, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+
+      Keep_Position_Speed(3287, -716, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+      Keep_Position_Speed(2514, 29, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+      Keep_Position_Speed(0, 0, 0, 12500);
+      Order_To_Subcontroller.Wheel_Break = 1;
+      Dribble_Twice(); // 运球赛运球
+      Order_To_Subcontroller.Wheel_Break = 0;
+      osDelay(400); // 等待运球完成
+
       route_Test[0] = 0; // 重置标志位
     }
     osDelay(2);
@@ -245,13 +286,13 @@ void RoutTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    data2send[0] = Computer_Vision_Data.LiDAR.X;
-    data2send[1] = Computer_Vision_Data.LiDAR.Y;
-    data2send[2] = Computer_Vision_Data.LiDAR.W;
-    data2send[3] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx;
-    data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
-    data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
-    Usart_Send_To_Show32(&huart7, data2send);
+    // data2send[0] = Computer_Vision_Data.LiDAR.X;
+    // data2send[1] = Computer_Vision_Data.LiDAR.Y;
+    // data2send[2] = Computer_Vision_Data.LiDAR.W;
+    // data2send[3] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx;
+    // data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
+    // data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
+    // Usart_Send_To_Show32(&huart7, data2send);
     labiao(2);
     // 手动路径相关
     if (Teaching_Pendant_Data.Automatic_Switch == 1)
@@ -266,7 +307,7 @@ void RoutTask(void *argument)
       |                               半场地图                                      |
       |                                                                            |
       |                                                                            |
-      |                                  篮筐                          车（车头朝下）|
+      |车（车头朝下）                    篮筐                                        |
       |----------------------------------------------------------------------------*/
       /* 操作手在这里*/
       //      Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
@@ -285,7 +326,7 @@ void RoutTask(void *argument)
     Check_Near_Vision_Points(&Vision_Point_Flag, 20);
     // Dribble_Pre_Competition();
     //Dribble_Twice();
-    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     /*===================================================================================================================
                                                   运球预选赛相关
     =====================================================================================================================*/

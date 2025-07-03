@@ -16,7 +16,7 @@ typedef enum
 typedef enum
 {
     DRIBBLE_MOTOR_ANGLE_START,           // 放完球回到位置,上电的位置，在右齿条和铝管平齐处
-    DRIBBLE_MOTOR_ANGLE_OUT = -650000,   // 运球时候的角度，机构拉到最外面
+    DRIBBLE_MOTOR_ANGLE_OUT = -627288,   // 运球时候的角度，机构拉到最外面
     DRIBBLE_MOTOR_ANGLE_IN = 160000,     // 放球的角度
     DRIBBLE_MOTOR_ANGLE_MEDIUM = -170000 // 发射的时候不干涉的位置
 } DribbleMotorAngleType;                 // 这个是shangceng[0]电机的角度，shangceng[1]的角度直接取反
