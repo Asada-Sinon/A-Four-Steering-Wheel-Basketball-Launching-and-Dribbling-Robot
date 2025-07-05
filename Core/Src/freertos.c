@@ -35,6 +35,8 @@
 #include "shangceng.h"
 #include "usart.h"
 #include "ANO_TC.h"
+#include "A1_Motor.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,6 +66,15 @@ Competition_Mode_ENUM Competition_Mode = Competition_Mode_Dribble_Preliminary; /
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
 extern Route_STU Route_Status;
+
+extern float Basketball_Angle;
+extern Coordinate_Position_Struct Now_World_Positon;
+
+// 投篮时的手柄状态
+Robot_Shooting_From_Teaching_Pendant_ENUM Shooting_Type = Shooting_Catching;
+extern uint8_t Fire_Start_Check; // 光电门标志位，当置1时表示发射装置初始化完成
+extern float A1_Angle_I_Want;
+extern A1Motor g_a1motor;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -294,7 +305,7 @@ void RoutTask(void *argument)
         if (Route_Executed_Flag[Route_Type_1] == 0)
         {
           Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_OUT; // 运球装置拉到最外面
-          Keep_Position_Speed(2458, -2204, 0, 12500);
+          Keep_Position_Speed(2458, -2204, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_1; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -307,7 +318,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_2] == 0)
         {
-          Keep_Position_Speed(1730, -2976, 0, 12500);
+          Keep_Position_Speed(1730, -2976, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_2; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -320,7 +331,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_3] == 0)
         {
-          Keep_Position_Speed(1741, -4705, 0, 12500);
+          Keep_Position_Speed(1741, -4705, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_3; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -333,7 +344,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_4] == 0)
         {
-          Keep_Position_Speed(3765, -4666, 0, 12500);
+          Keep_Position_Speed(3765, -4666, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_4; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -346,7 +357,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_5] == 0)
         {
-          Keep_Position_Speed(5777, -4648, 0, 12500);
+          Keep_Position_Speed(5777, -4648, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_5; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -359,7 +370,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_6] == 0)
         {
-          Keep_Position_Speed(5745, -2920, 0, 12500);
+          Keep_Position_Speed(5745, -2920, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_6; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -372,7 +383,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_7] == 0)
         {
-          Keep_Position_Speed(4972, -2175, 0, 12500);
+          Keep_Position_Speed(4972, -2175, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_7; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -385,7 +396,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_8] == 0)
         {
-          Keep_Position_Speed(1000, -2175, 0, 12500);
+          Keep_Position_Speed(1000, -2175, 0, 15000);
           Last_Dribble_Route_Type = Route_Type_8; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Order_To_Subcontroller.Wheel_Break = 0;
@@ -401,9 +412,23 @@ void RoutTask(void *argument)
       if (Teaching_Pendant_Data.Automatic_Switch == 1)
       {
         // 直接赋值车身坐标系速度
+        // 投球预选赛
+        // 手动路径相关
+        // 直接赋值车身坐标系速度
         Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
         Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
-        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+        //        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+        // 当手操速度比较小的时候再进行角速度的计算，这里小于50,当R1位置距离出发点有一段距离后再进行角速度的计算，防止撞墙，这里为300mm
+        if (fabs(Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx) < 50 &&
+            fabs(Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy) < 50 &&
+            fabs(Computer_Vision_Data.LiDAR.X) > 300 && fabs(Computer_Vision_Data.LiDAR.Y) > 300)
+        {
+          Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(2, 0, 0);
+        }
+        else
+        {
+          Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+        }
         // 车身坐标系速度转化为马铭泽要的坐标系速度（车的开始位置有讲究）
         /*---------------------------------------------------------------------------
         |                                                                            |
@@ -443,6 +468,51 @@ void ShootTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
+    // 如果当前是发射模式
+    if (Competition_Mode == Competition_Mode_Shoot_Preliminary)
+    {
+      // 如果发射装置初始化完成
+      if (Fire_Start_Check == 1)
+      {
+        // 如果是勾住模式
+        if (Shooting_Type == Shooting_Catching)
+        {
+          // 钩子锁死，AI上升
+          Trigger_Angle = Trigger_ANGLE_LOCK;
+          A1_Angle_I_Want = -15;
+
+          // 如果A1电机上升到达了位置, 改变为装弹模式
+          if (fabsf(A1_Angle_I_Want - g_a1motor.feedback.Position_Sum) < 0.5f)
+          {
+            Shooting_Type = Shooting_Reloading;
+          }
+        }
+        // 如果现在是装弹模式,并且角度已经拉到位置
+        if (Shooting_Type == Shooting_Reloading && fabsf(A1_Angle_I_Want - g_a1motor.feedback.Position_Sum) < 0.5f)
+        {
+          // 如果手柄最左边的拨杆向下拨动
+          if (Teaching_Pendant_Data.Fire == 1)
+          {
+            // A1电机向下拉动,并且把更改投篮状态
+            A1_Angle_I_Want = 10;//这里是写的那个参数拟合
+            Shooting_Type = Shooting_Launching;
+          }
+        }
+        // 如果现在是发射模式，并且角度已经拉到位置
+        if (Shooting_Type == Shooting_Launching && fabsf(A1_Angle_I_Want - g_a1motor.feedback.Position_Sum) < 0.5f)
+        {
+          // 如果手柄最左边的拨杆向上拨动
+          if (Teaching_Pendant_Data.Fire == -1)
+          {
+            // 松开锁死装置，使得篮球发射出去
+            Trigger_Angle = Trigger_ANGLE_FIRE;
+            Shooting_Type = Shooting_Catching;
+            // 等待500ms,会自动进入勾住模式，勾住模式会使得A1上升，钩子锁死
+            osDelay(500);
+          }
+        }
+      }
+    }
     // if (Start_Pass_Ball_From_Dribble_To_Shoot_Flag)
     // {
     //   // 将球从运球装置转移到投球装置上
@@ -468,22 +538,6 @@ void ReloadTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    // 这个任务里面写发射装置的相关机构
-    // if (Reload_Flag)
-    // {
-    //   // 在换弹时A1拉丝杠到最上面位置，然后拉到三分线投球的位置
-    //   // 这个函数会一直卡在这里直到换弹完成
-    //   Finish_Reload_Flag = Reload();
-    //   Reload_Flag = 0;
-    // }
-    // //  在程序里面自动开火或者操作手根据情况手动开火，两种有一个置为1直接开火
-    // if (Teaching_Pendant.Fire == -1 || Teaching_Pendant_Data.Fire == -1)
-    // {
-    //   Finish_Fire_Flag = 0; // 开火前将开火完成标志位置为0
-    //   Finish_Fire_Flag = Fire();
-    //   Teaching_Pendant.Fire = 0;      // 开火后将开火标志位置为0
-    //   Teaching_Pendant_Data.Fire = 0; // 开火后将开火标志位置为0
-    // }
     osDelay(2);
   }
   /* USER CODE END ReloadTask */
@@ -521,17 +575,10 @@ void TestTask(void *argument)
     // data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
     // data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
     // Usart_Send_To_Show32(&huart7, data2send);
-    if (Teaching_Pendant_Data.Automatic_Switch == -1)
-    {
-      // 直接赋值车身坐标系速度
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
-    }
-    Keep_Position_Speed(100, -400, 0, 12500);
-    Keep_Position_Speed(600, -400, 0, 12500);
-    Keep_Position_Speed(600, 100, 0, 12500);
-    Keep_Position_Speed(100, 100, 0, 12500);
+    // Keep_Position_Speed(100, -400, 0, 15000);
+    // Keep_Position_Speed(600, -400, 0, 15000);
+    // Keep_Position_Speed(600, 100, 0, 15000);
+    // Keep_Position_Speed(100, 100, 0, 15000);
     osDelay(2);
   }
   /* USER CODE END TestTask */

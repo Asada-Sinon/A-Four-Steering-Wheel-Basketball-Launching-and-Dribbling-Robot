@@ -77,7 +77,6 @@ extern Disk_Encoder_Struct Disk_Encoder;
 Coordinate_Speed_Struct i;
 uint8_t Fire_Start_Check = 0; // 光电门标志位，当置1时表示发射装置初始化完成
 float A1_Angle_I_Want = 0;    // A1角度。全局变量
-float testaaa = 0;
 extern osThreadId_t RouteHandle;
 /* USER CODE END PFP */
 
@@ -261,7 +260,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     Motor_DJI_Angle_PID_Output_Calculate(&ShangCeng_motor[1], -Dribble_Motor_Angle);
     Motor_DJI_Angle_PID_Output_Calculate(&ShangCeng_motor[2], Camera_Angle);
     Motor_DJI_Angle_PID_Output_Calculate(&ShangCeng_motor[3], Trigger_Angle);
-    Trigger_Angle = testaaa;
     CAN_Send_Data(&hfdcan2, 0x200, Can_3_Data, ShangCeng_motor, 8);
     //FDCAN_Send_Data(&hfdcan1, 0x03F, Can_1_Data, &i, &Order_To_Subcontroller);
     FDCAN_Send_Data(&hfdcan1, 0x03F, Can_1_Data, &Route_Status.Coordinate_System.Robot_Coordinate_System_V, &Order_To_Subcontroller);

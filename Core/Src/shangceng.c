@@ -82,15 +82,15 @@ void ShangCeng_Init()
 	Camera_Angle = CAMERA_ANGLE_START;					   // 相机起始位置
 	Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_START;	   // 运球2006起始位置
 	Trigger_Angle = Trigger_ANGLE_START;				   // 扳机起始位置
-	// g_a1motor.command.id = 0x00;
-	// g_a1motor.command.mode = 0x0A;
-	// g_a1motor.command.kw = 3;
-	// while(!Fire_Start_Check)
-	// {//上电让丝杠上升去找光电门
-	// 	g_a1motor.command.velocity = -20;
-	// }
-	// //A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
-	// Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
+	g_a1motor.command.id = 0x00;
+	g_a1motor.command.mode = 0x0A;
+	g_a1motor.command.kw = 3;
+	while(!Fire_Start_Check)
+	{//上电让丝杠上升去找光电门
+		g_a1motor.command.velocity = -20;
+	}
+	//A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
+	Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
 }
 
 /**

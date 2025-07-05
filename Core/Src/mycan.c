@@ -63,7 +63,7 @@ void CAN_Send_Data(FDCAN_HandleTypeDef *hfdcan, uint16_t ID, uint8_t *pData, Mot
     HAL_StatusTypeDef status = HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &Tx_Header, pData);
     if (status != HAL_OK)
     {
-        HAL_Delay(1);
+        //HAL_Delay(1);
         // Handle error, e.g., log the error or retry
     }
 }

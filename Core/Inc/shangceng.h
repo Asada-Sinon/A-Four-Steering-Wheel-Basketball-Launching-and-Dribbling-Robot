@@ -24,7 +24,7 @@ typedef enum
 typedef enum
 {
     Trigger_ANGLE_START,     // 扳机上电位置,扳机初始位置在距离白色打印件最远处
-    Trigger_ANGLE_LOCK = 8000, // 扳机锁死位置
+    Trigger_ANGLE_LOCK = 4000, // 扳机锁死位置
     Trigger_ANGLE_FIRE = 28000 // 扳机开火位置
 } TriggerAngleType;
 

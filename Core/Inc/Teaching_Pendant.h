@@ -27,6 +27,14 @@ typedef enum
     Competition_Mode_Final                    // 正赛
 } Competition_Mode_ENUM;
 
+// 投篮时手柄的指令选择
+typedef enum
+{
+	Shooting_Catching, 	//钩子向上运动，勾住发射机构，并且锁死
+	Shooting_Reloading, //钩子向下运动，装弹
+	Shooting_Launching, //钩子解锁，发射篮球
+} Robot_Shooting_From_Teaching_Pendant_ENUM;
+
 typedef struct
 {
     // 这几个开关从左到右

@@ -67,6 +67,7 @@ Coordinate_Speed_Struct World_Coordinate_System_Target_V;  // 世界坐标系下
 Coordinate_Speed_Struct Robot_Coordinate_System_Target_V;  // 车身坐标系下目标速度
 Coordinate_Speed_Struct Robot_Coordinate_System_V;         // 路径计算出的车身速度，用于车轮速度分配
 Coordinate_Position_Struct Zero_Point = {0, 0, 0};         // 世界坐标系零点
+Coordinate_Position_Struct Now_World_Positon;              // 进行投篮时获得一个实时更新的全局坐标，不用雷达数据的原因是数据类型不统一
 
 Route_STU Route_Status; // 路径结构体
 
@@ -81,7 +82,8 @@ PID_Struct Keep_Y_PID;           // 保持y方向位置
 PID_Struct Keep_W_PID;           // 保持角度
 PID_Struct Automatic_Aiming_PID; // 自瞄pid
 
-float Angle_Aim = 0; // 目标角度值（绝对角度），中间变量
+float Basketball_Angle; // 球框的目标角度，设置为全局变量方便观察
+float Angle_Aim = 0;    // 目标角度值（绝对角度），中间变量
 // float Angle_Offset = 0; // 删除：剩余要转的角度，改用 Status->Parameter.Abs_Angle_Error
 float Line_Angle = 0; // 线坐标系与世界坐标系夹角
 // float Angle_Dis = 0;    // 删除：角度转动距离，改用 Status->Parameter.Angle_Distance_Traveled
@@ -1346,41 +1348,64 @@ Coordinate_Position_Struct Data_For_Automatic_Aiming;              // 算角度�
  *********************************************************************************/
 float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float custom_y)
 {
-    float target_x, target_y;
-    // 根据target_type选择目标点
-    if (target_type == Competition_Mode_Shoot_Preliminary)
+    // float target_x, target_y;
+    // // 根据target_type选择目标点
+    // if (target_type == Competition_Mode_Shoot_Preliminary)
+    // {
+    //     // 预选赛篮筐
+    //     target_x = Pre_Basket_Position.X;
+    //     target_y = Pre_Basket_Position.Y;
+    // }
+    // else if (target_type == Competition_Mode_Final)
+    // {
+    //     // 正赛篮筐
+    //     target_x = Basket_Position.X;
+    //     target_y = Basket_Position.Y;
+    // }
+    // else
+    // {
+    //     // 自定义坐标
+    //     target_x = custom_x;
+    //     target_y = custom_y;
+    // }
+    // // 计算相对位置
+    // // 这里直接用雷达的数据（全局变量）
+    // float delta_x = target_x - Computer_Vision_Data.LiDAR.X;
+    // float delta_y = target_y - Computer_Vision_Data.LiDAR.Y;
+    // // 使用atan2f计算角度，处理所有象限情况
+    // float angle_rad = atan2f(delta_y, delta_x);
+    // // 转换为角度制并返回
+    // float medium_angle = angle_rad * CHANGE_TO_ANGLE;
+    // float Result_Angle = medium_angle - 90.0f; // 机器人坐标系下的角度，90度偏移
+    // PID_Calculate_Positional(&Automatic_Aiming_PID, Computer_Vision_Data.LiDAR.W, Result_Angle);
+    // if (Automatic_Aiming_PID.Output > 2000)
+    //     Automatic_Aiming_PID.Output = 2000;
+    // else if (Automatic_Aiming_PID.Output < -2000)
+    //     Automatic_Aiming_PID.Output = -2000;
+    // return Automatic_Aiming_PID.Output; // 返回计算得到的速度
+    Now_World_Positon.X = Computer_Vision_Data.LiDAR.X;
+    Now_World_Positon.Y = Computer_Vision_Data.LiDAR.Y;
+    // 获取篮筐的目标角度
+    Basketball_Angle = -90.0f + Calculate_Line_Angle(Now_World_Positon, Pre_Basket_Position);
+    float angle_error = Calculate_Angle_Error_With_Direction(
+        Basketball_Angle,
+        Computer_Vision_Data.LiDAR.W);
+    float angle_remain = Safe_fabs(angle_error);
+    if (angle_remain > 0.5f)
     {
-        // 预选赛篮筐
-        target_x = Pre_Basket_Position.X;
-        target_y = Pre_Basket_Position.Y;
-    }
-    else if (target_type == Competition_Mode_Final)
-    {
-        // 正赛篮筐
-        target_x = Basket_Position.X;
-        target_y = Basket_Position.Y;
+        Keep_W_PID.Kp = 100.0f;
+        Keep_W_PID.Ki = 0.0f;
+        Keep_W_PID.Kd = 0.0f;
+        Keep_X_PID.Forward = 1000.0f; // 前馈补偿
+        PID_Calculate_Positional_With_Forward(&Keep_W_PID, Computer_Vision_Data.LiDAR.W, Basketball_Angle);
+        // 限制角速度输出
+        Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
+        return Keep_W_PID.Output;
     }
     else
     {
-        // 自定义坐标
-        target_x = custom_x;
-        target_y = custom_y;
+        return 0.0f;
     }
-    // 计算相对位置
-    // 这里直接用雷达的数据（全局变量）
-    float delta_x = target_x - Computer_Vision_Data.LiDAR.X;
-    float delta_y = target_y - Computer_Vision_Data.LiDAR.Y;
-    // 使用atan2f计算角度，处理所有象限情况
-    float angle_rad = atan2f(delta_y, delta_x);
-    // 转换为角度制并返回
-    float medium_angle = angle_rad * CHANGE_TO_ANGLE;
-    float Result_Angle = medium_angle - 90.0f; // 机器人坐标系下的角度，90度偏移
-    PID_Calculate_Positional(&Automatic_Aiming_PID, Computer_Vision_Data.LiDAR.W, Result_Angle);
-    if (Automatic_Aiming_PID.Output > 2000)
-        Automatic_Aiming_PID.Output = 2000;
-    else if (Automatic_Aiming_PID.Output < -2000)
-        Automatic_Aiming_PID.Output = -2000;
-    return Automatic_Aiming_PID.Output; // 返回计算得到的速度
 }
 
 /*********************************************************************************
@@ -2366,7 +2391,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                 Keep_X_PID.Kp = dynamic_kp;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 2500.0f; // 前馈补偿
+                Keep_X_PID.Forward = 4500.0f; // 前馈补偿
 
                 // 使用缩放后的位置进行PID计算
                 float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 15.0f;
@@ -2380,17 +2405,17 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             else // X_remain < 200
             {
                 // 小距离时使用固定PID参数
-                Keep_X_PID.Kp = 20.0f;
+                Keep_X_PID.Kp = 15.0f;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 500.0f; // 前馈补偿
+                Keep_X_PID.Forward = 1200.0f; // 前馈补偿
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
 
                 // 限制输出速度
-                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -2500.0f, 2500.0f);
+                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -5000.0f, 5000.0f);
 
                 // 添加前馈补偿（根据原代码逻辑）
                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
@@ -2469,7 +2494,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 停止判断
         ---------------------------------------------------------------------------------------------------------------*/
         // 当X方向误差小于阈值时停止
-        if (X_remain <= 5.0f && // angle_remain <= 0.5f &&
+        if (X_remain <= 20.0f && angle_remain <= 0.5f &&
             VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller < 100 &&
             VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller < 100 &&
             VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller < 100 &&
@@ -2514,12 +2539,11 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
 void Dribble_Pre_Check_Near_Reset_Points_And_Go(void)
 {
     // 定义三个预设的视觉识别点坐标
-    const Coordinate_Position_Struct Reset_Point1 = {1741, -5200, 0};  // 视觉点1
+    const Coordinate_Position_Struct Reset_Point1 = {1741, -5200, 0}; // 视觉点1
     const Coordinate_Position_Struct Reset_Point2 = {3765, -5200, 0}; // 视觉点2
-    const Coordinate_Position_Struct Reset_Point3 = {5730, -5200, 0};  // 视觉点3（中间点）
-    const Coordinate_Position_Struct Reset_Point4 = {1000, -2950, 0};  // 视觉点4（中间点）
-    const Coordinate_Position_Struct Reset_Point5 = {6400, -2950, 0};  // 视觉点5（中间点）
-
+    const Coordinate_Position_Struct Reset_Point3 = {5730, -5200, 0}; // 视觉点3（中间点）
+    const Coordinate_Position_Struct Reset_Point4 = {1000, -2950, 0}; // 视觉点4（中间点）
+    const Coordinate_Position_Struct Reset_Point5 = {6400, -2950, 0}; // 视觉点5（中间点）
 
     // 计算当前雷达位置到三个视觉点的距离
     float distance1 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point1.X, 2) +
