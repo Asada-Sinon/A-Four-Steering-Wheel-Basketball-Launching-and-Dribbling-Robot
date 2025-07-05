@@ -1,5 +1,7 @@
 #include "return_data_process.h"
 #include "stdio.h"
+#include "route.h"
+
 //printf重定向
 #define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
 #define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))
@@ -10,6 +12,7 @@
 struct __FILE { int handle; /* Add whatever is needed */ };
 FILE __stdout;
 FILE __stdin;
+
 
 int fputc( int ch, FILE *f ) {
     if (DEMCR & TRCENA) 

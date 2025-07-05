@@ -197,8 +197,8 @@ void labiao(uint8_t competition_type)
 		target_x = Basket_Position.X;
 		target_y = Basket_Position.Y;
 	}
-	labiaoData = sqrtf(pow(Computer_Vision_Data.LiDAR.X - target_x, 2) +
-					   pow(Computer_Vision_Data.LiDAR.Y - target_y, 2));
+	labiaoData = sqrtf(pow(Final_Now_Pos.X - target_x, 2) +
+					   pow(Final_Now_Pos.Y - target_y, 2));
 }
 /*********************************************************************************
  * @name 	Calculate_Fire_Position
@@ -221,8 +221,8 @@ void Calculate_Fire_Position(uint8_t competition_type)
 		target_x = Basket_Position.X;
 		target_y = Basket_Position.Y;
 	}
-	float distance = sqrtf(pow(Computer_Vision_Data.LiDAR.X - target_x, 2) +
-						   pow(Computer_Vision_Data.LiDAR.Y - target_y, 2));
+	float distance = sqrtf(pow(Final_Now_Pos.X - target_x, 2) +
+						   pow(Final_Now_Pos.Y - target_y, 2));
 	A1_Command_Pos = distance; // 这里应该是等于distance的函数，等待去江阴拟合
 	A1Motor_distance_mode(&g_a1motor, A1_Command_Pos, 10, 800);
 }

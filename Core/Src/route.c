@@ -14,6 +14,7 @@
 #include "A1_Motor.h"
 #include <stdint.h>
 #include "arm_math.h"
+#include "main.h"
 /*========================================================================================================================
                                                 代码经验
 1.在cube会刷的文件里面不写注释，cube刷配置的时候会换编码方式，注释全部变乱码（所以main和RTOS里面只调用，和下面提到的相呼应）
@@ -2321,9 +2322,9 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
     Order_To_Subcontroller.Wheel_Lock = 0;
 
     // 设置起始位置为当前位置
-    Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
-    Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
-    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+    Route_Status.Coordinate_System.Start_Position.X = Final_Now_Pos.X;
+    Route_Status.Coordinate_System.Start_Position.Y = Final_Now_Pos.Y;
+    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Final_Now_Pos.W);
 
     // 设置目标位置
     Route_Status.Coordinate_System.Target_Position.X = Target_X;
@@ -2347,9 +2348,9 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 坐标系更新
         ---------------------------------------------------------------------------------------------------------------*/
         // 更新当前世界坐标
-        World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
-        World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
-        World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
+        World_Coordinate_System_NowPos.X = Final_Now_Pos.X;
+        World_Coordinate_System_NowPos.Y = Final_Now_Pos.Y;
+        World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Final_Now_Pos.W);
 
         // 更新起始位置（实时更新，便于小幅调整）
         Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
@@ -2546,20 +2547,20 @@ void Dribble_Pre_Check_Near_Reset_Points_And_Go(void)
     const Coordinate_Position_Struct Reset_Point5 = {6400, -2950, 0}; // 视觉点5（中间点）
 
     // 计算当前雷达位置到三个视觉点的距离
-    float distance1 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point1.X, 2) +
-                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point1.Y, 2));
+    float distance1 = sqrtf(pow(Final_Now_Pos.X - Reset_Point1.X, 2) +
+                            pow(Final_Now_Pos.Y - Reset_Point1.Y, 2));
 
-    float distance2 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point2.X, 2) +
-                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point2.Y, 2));
+    float distance2 = sqrtf(pow(Final_Now_Pos.X - Reset_Point2.X, 2) +
+                            pow(Final_Now_Pos.Y - Reset_Point2.Y, 2));
 
-    float distance3 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point3.X, 2) +
-                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point3.Y, 2));
+    float distance3 = sqrtf(pow(Final_Now_Pos.X - Reset_Point3.X, 2) +
+                            pow(Final_Now_Pos.Y - Reset_Point3.Y, 2));
 
-    float distance4 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point4.X, 2) +
-                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point4.Y, 2));
+    float distance4 = sqrtf(pow(Final_Now_Pos.X - Reset_Point4.X, 2) +
+                            pow(Final_Now_Pos.Y - Reset_Point4.Y, 2));
 
-    float distance5 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point5.X, 2) +
-                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point5.Y, 2));
+    float distance5 = sqrtf(pow(Final_Now_Pos.X - Reset_Point5.X, 2) +
+                            pow(Final_Now_Pos.Y - Reset_Point5.Y, 2));
     // 找到最近的视觉点
     float min_distance = distance1;
     Coordinate_Position_Struct nearest_point = Reset_Point1;

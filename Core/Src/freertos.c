@@ -78,7 +78,7 @@ extern uint8_t Fire_Start_Check; // 光电门标志位，当置1时表示发射装置初始化完成
 extern float A1_Angle_I_Want;
 extern A1Motor g_a1motor;
 
-extern KalmanFilter kr; // 卡尔曼滤波器实例
+extern KalmanFilter kr_X; // 卡尔曼滤波器实例
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -98,37 +98,37 @@ extern KalmanFilter kr; // 卡尔曼滤波器实例
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "defaultTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Route */
 osThreadId_t RouteHandle;
 const osThreadAttr_t Route_attributes = {
-    .name = "Route",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "Route",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Shoot */
 osThreadId_t ShootHandle;
 const osThreadAttr_t Shoot_attributes = {
-    .name = "Shoot",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "Shoot",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for Reload */
 osThreadId_t ReloadHandle;
 const osThreadAttr_t Reload_attributes = {
-    .name = "Reload",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "Reload",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for Test */
 osThreadId_t TestHandle;
 const osThreadAttr_t Test_attributes = {
-    .name = "Test",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "Test",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,12 +145,11 @@ void TestTask(void *argument);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
-void MX_FREERTOS_Init(void)
-{
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -194,6 +193,7 @@ void MX_FREERTOS_Init(void)
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -425,7 +425,7 @@ void RoutTask(void *argument)
         // 当手操速度比较小的时候再进行角速度的计算，这里小于50,当R1位置距离出发点有一段距离后再进行角速度的计算，防止撞墙，这里为300mm
         if (fabs(Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx) < 50 &&
             fabs(Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy) < 50 &&
-            fabs(Computer_Vision_Data.LiDAR.X) > 300 && fabs(Computer_Vision_Data.LiDAR.Y) > 300)
+            fabs(Final_Now_Pos.X) > 300 && fabs(Final_Now_Pos.Y) > 300)
         {
           Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(2, 0, 0);
         }
@@ -439,9 +439,9 @@ void RoutTask(void *argument)
         |                               半场地图                                      |
         |                                                                            |
         |                                                                            |
-        |车（车头朝下）                    篮筐                                        |
+        |                                 篮筐                           车（车头朝下）|
         |----------------------------------------------------------------------------*/
-        /* 操作手在这里*/
+                                    /* 操作手在这里*/
         //      Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
         //      mingsang_Coordinate_Speed.Vx = -Word_Coordinate_Speed_For_Gamepad.Vx;
         //      mingsang_Coordinate_Speed.Vy = -Word_Coordinate_Speed_For_Gamepad.Vy;
@@ -560,7 +560,6 @@ void TestTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    kalman_filter_update(&kr, Computer_Vision_Data.LiDAR.X, Disk_Encoder.Cod.Chassis_Position_From_Disk.X);
     // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     // if (route_Test[0] == 1)
     // {
@@ -573,17 +572,20 @@ void TestTask(void *argument)
     // Dribble_Pre_Competition();
     // Dribble_Twice();
     // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-    // data2send[0] = VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller;
-    // data2send[1] = VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller;
-    // data2send[2] = VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller;
-    // data2send[3] = VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller;
-    // data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
-    // data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
-    // Usart_Send_To_Show32(&huart7, data2send);
-    // Keep_Position_Speed(100, -400, 0, 15000);
-    // Keep_Position_Speed(600, -400, 0, 15000);
-    // Keep_Position_Speed(600, 100, 0, 15000);
-    // Keep_Position_Speed(100, 100, 0, 15000);
+//    data2send[0] = VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller;
+//     data2send[1] = VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller;
+//     data2send[2] = VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller;
+//     data2send[3] = VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller;
+//     data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
+//     data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
+		    data2send[0] = Computer_Vision_Data.LiDAR.X;
+     data2send[1] = Disk_Encoder.Cod.Chassis_Position_From_Disk.X;
+     data2send[2] = kr_X.x;
+     Usart_Send_To_Show32(&huart7, data2send);
+//     Keep_Position_Speed(100, -400, 0, 15000);
+//     Keep_Position_Speed(600, -400, 0, 15000);
+//     Keep_Position_Speed(600, 100, 0, 15000);
+//     Keep_Position_Speed(100, 100, 0, 15000);
     osDelay(2);
   }
   /* USER CODE END TestTask */
@@ -593,3 +595,4 @@ void TestTask(void *argument)
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
+

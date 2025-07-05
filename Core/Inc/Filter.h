@@ -25,5 +25,5 @@ void LPF_clear(s_LPFilter* lpf);
 } KalmanFilter;
 
 void kalman_init(KalmanFilter* kf, float q, float r1, float r2, float initial_value);
-void kalman_update(KalmanFilter* kf, float z1, float z2); 
+void kalman_filter_update(KalmanFilter *kf, float data1, float data2);
 #endif
