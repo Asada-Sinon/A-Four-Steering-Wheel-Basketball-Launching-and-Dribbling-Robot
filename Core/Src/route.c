@@ -1331,7 +1331,7 @@ void Nearest_Vision_Point_Route(void)
                                               投球预选赛相关
 =====================================================================================================================*/
 
-Coordinate_Position_Struct Pre_Basket_Position = {-3660, -790, 0}; // 预选赛世界坐标系篮筐位置
+Coordinate_Position_Struct Pre_Basket_Position = {3660, -770, 0}; // 预选赛世界坐标系篮筐位置
 Coordinate_Position_Struct Basket_Position = {2000, 6000, 0};      // 正赛世界坐标系篮筐位置
 Coordinate_Position_Struct Data_For_Automatic_Aiming;              // 算角度的中间变量，X和Y存的是篮筐位置和现在位置的差值，W存的是世界坐标系下目标角度的绝对角度
 /*********************************************************************************
@@ -1384,15 +1384,15 @@ float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float cu
     // else if (Automatic_Aiming_PID.Output < -2000)
     //     Automatic_Aiming_PID.Output = -2000;
     // return Automatic_Aiming_PID.Output; // 返回计算得到的速度
-    Now_World_Positon.X = Computer_Vision_Data.LiDAR.X;
-    Now_World_Positon.Y = Computer_Vision_Data.LiDAR.Y;
+    Now_World_Positon.X = Final_Now_Pos.X;
+    Now_World_Positon.Y = Final_Now_Pos.Y;
     // 获取篮筐的目标角度
     Basketball_Angle = -90.0f + Calculate_Line_Angle(Now_World_Positon, Pre_Basket_Position);
     float angle_error = Calculate_Angle_Error_With_Direction(
         Basketball_Angle,
-        Computer_Vision_Data.LiDAR.W);
+        Final_Now_Pos.W);
     float angle_remain = Safe_fabs(angle_error);
-    if (angle_remain > 0.5f)
+    if (angle_remain > 0.4f)
     {
         Keep_W_PID.Kp = 100.0f;
         Keep_W_PID.Ki = 0.0f;

@@ -149,8 +149,8 @@ int main(void)
   Route_Init();
   ShangCeng_Init(); // ä¸Šå±‚åˆå?åŒ?
   Enhanced_Teaching_Pendant_Init();
-  kalman_init(&kr_X, 0.01f, 0.2f, 0.1f, 0.0f); // ³õÊ¼»¯¿¨¶ûÂüÂË²¨Æ÷
-  kalman_init(&kr_Y, 0.01f, 0.2f, 0.1f, 0.0f); // ³õÊ¼»¯¿¨¶ûÂüÂË²¨Æ÷
+  kalman_init(&kr_X, 0.01f, 0.3f, 0.1f, 0.0f); // ³õÊ¼»¯¿¨¶ûÂüÂË²¨Æ÷
+  kalman_init(&kr_Y, 0.01f, 0.3f, 0.1f, 0.0f); // ³õÊ¼»¯¿¨¶ûÂüÂË²¨Æ÷
   /* USER CODE END 2 */
 
   /* Init scheduler */
