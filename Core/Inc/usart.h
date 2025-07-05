@@ -61,6 +61,7 @@ extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 extern DMA_HandleTypeDef hdma_uart4_rx;
 extern DMA_HandleTypeDef hdma_usart10_rx;
+extern DMA_HandleTypeDef hdma_uart7_rx;
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

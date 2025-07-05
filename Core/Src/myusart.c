@@ -10,6 +10,7 @@
 #include "A1_Motor.h"
 #include "ANO_TC.h"
 #include "mycan.h"
+#include "gyro.h"
 
 extern float Vx, Vy, Vw;
 float datasend[8];
@@ -40,6 +41,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   {
     HT10A_process(Teaching_Pendant_buffer);
     Teaching_Pendant_Restart();
+  }
+  // 串口7用来接收陀螺仪的数据
+  if (huart->Instance == UART7)
+  {
+    witdecoded(Gyro_data, &Wit_Gyro);
+    Wit_Gyro_Restart();
   }
   // 串口10用来和A1电机通信
   if (huart->Instance == USART10)
@@ -76,6 +83,12 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   {
     HT10A_process(Teaching_Pendant_buffer);
     Teaching_Pendant_Restart();
+  }
+  // 串口7用来接收陀螺仪的数据
+  if (huart->Instance == UART7)
+  {
+    witdecoded(Gyro_data, &Wit_Gyro);
+    Wit_Gyro_Restart();
   }
   // 串口10用来和A1电机通信
   if (huart->Instance == USART10)

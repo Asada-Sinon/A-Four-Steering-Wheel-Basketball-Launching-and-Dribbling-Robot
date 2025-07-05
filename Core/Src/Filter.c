@@ -104,3 +104,33 @@ void LPF_clear(s_LPFilter *lpf)
  *    - 截止频率不能超过奈奎斯特频率（采样频率的一半）
  *    - 滤波会引入相位延迟，高精度控制时需要考虑
  *********************************************************************************/
+
+
+void kalman_init(KalmanFilter* kf, float q, float r1, float r2, float initial_value) {
+    kf->q = q;
+    kf->r1 = r1;
+    kf->r2 = r2;
+    kf->p = 1.0f;   // 初始后验协方差（可调整）
+    kf->x = initial_value;
+    kf->x_ = 0.0f;
+    kf->p_ = 0.0f;
+    kf->k1 = kf->k2 = 0.0f;
+}
+
+void kalman_filter_update(KalmanFilter* kf, float data1, float data2) {
+    // 1. 预测阶段（时间更新）
+    kf->x_ = kf->x;                 // 状态预测（假设系统模型为 x = x_prev）
+    kf->p_ = kf->p + kf->q;         // 协方差预测
+
+    // 2. 更新阶段（测量更新）
+    // 传感器1更新
+    kf->k1 = kf->p_ / (kf->p_ + kf->r1);
+    kf->x = kf->x_ + kf->k1 * (data1 - kf->x_);
+    kf->p = (1.0f - kf->k1) * kf->p_;
+
+    // 传感器2更新（基于传感器1更新后的结果）
+    kf->k2 = kf->p / (kf->p + kf->r2);
+    kf->x = kf->x + kf->k2 * (data2 - kf->x);
+    kf->p = (1.0f - kf->k2) * kf->p;
+}
+

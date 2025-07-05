@@ -1441,6 +1441,11 @@
               <FileType>1</FileType>
               <FilePath>..\Core\Src\VESC_NEW.c</FilePath>
             </File>
+            <File>
+              <FileName>gyro.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\gyro.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

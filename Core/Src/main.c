@@ -39,6 +39,8 @@
 #include "shangceng.h"
 #include "A1_Motor.h"
 #include "ANO_TC.h"
+#include "Filter.h"
+#include "gyro.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -78,6 +80,9 @@ Coordinate_Speed_Struct i;
 uint8_t Fire_Start_Check = 0; // 光电门标志位，当置1时表示发射装置初始化完成
 float A1_Angle_I_Want = 0;    // A1角度。全局变量
 extern osThreadId_t RouteHandle;
+
+KalmanFilter kr;
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -138,10 +143,11 @@ int main(void)
   Computer_Vision_Restart();  // 瀵??閸???鐟欏?瑕嗛崣锝嗗复閺??
   Teaching_Pendant_Restart(); // 瀵??閸??澧滈弻鍕??閸欙絾甯撮弨?
   A1Motor_Restart();          // 瀵??閸??A1閺傚洣瑕嗛崣锝嗗复閺??
+  Wit_Gyro_Restart();      // 瀵??閸??Wit閺傚洣瑕嗛崣锝嗗复閺??
   Route_Init();
   ShangCeng_Init(); // 涓婂眰鍒濆?鍖?
   Enhanced_Teaching_Pendant_Init();
-  
+  kalman_init(&kr, 0.01f, 0.1f, 0.1f, 0.0f); // 初始化卡尔曼滤波器
   /* USER CODE END 2 */
 
   /* Init scheduler */

@@ -36,6 +36,8 @@
 #include "usart.h"
 #include "ANO_TC.h"
 #include "A1_Motor.h"
+#include "Filter.h"
+#include "disk.h"
 
 /* USER CODE END Includes */
 
@@ -75,6 +77,8 @@ Robot_Shooting_From_Teaching_Pendant_ENUM Shooting_Type = Shooting_Catching;
 extern uint8_t Fire_Start_Check; // 光电门标志位，当置1时表示发射装置初始化完成
 extern float A1_Angle_I_Want;
 extern A1Motor g_a1motor;
+
+extern KalmanFilter kr; // 卡尔曼滤波器实例
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -494,7 +498,7 @@ void ShootTask(void *argument)
           if (Teaching_Pendant_Data.Fire == 1)
           {
             // A1电机向下拉动,并且把更改投篮状态
-            A1_Angle_I_Want = 10;//这里是写的那个参数拟合
+            A1_Angle_I_Want = testbbb;//这里是写的那个参数拟合
             Shooting_Type = Shooting_Launching;
           }
         }
@@ -556,6 +560,7 @@ void TestTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
+    kalman_filter_update(&kr, Computer_Vision_Data.LiDAR.X, Disk_Encoder.Cod.Chassis_Position_From_Disk.X);
     // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     // if (route_Test[0] == 1)
     // {
