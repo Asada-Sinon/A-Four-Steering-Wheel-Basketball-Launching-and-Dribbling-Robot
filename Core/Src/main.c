@@ -80,6 +80,7 @@ Coordinate_Speed_Struct i;
 uint8_t Fire_Start_Check = 0;                         // 光电门标志位，当置1时表示发射装置初始化完成
 float A1_Angle_I_Want = 0;                            // A1角度。全局变量
 Coordinate_Position_Struct Final_Now_Pos = {0, 0, 0}; // 最终的世界坐标系位置
+float teastsss[2] = {0, 0}; // 测试用的数组
 extern osThreadId_t RouteHandle;
 
 KalmanFilter kr_X;
@@ -280,6 +281,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     Motor_DJI_Angle_PID_Output_Calculate(&ShangCeng_motor[3], Trigger_Angle);
     CAN_Send_Data(&hfdcan2, 0x200, Can_3_Data, ShangCeng_motor, 8);
     // FDCAN_Send_Data(&hfdcan1, 0x03F, Can_1_Data, &i, &Order_To_Subcontroller);
+    //Dribble_Motor_Angle = teastsss[0]; // 测试用的数组
+    //Trigger_Angle = teastsss[1];        // 测试用的
     FDCAN_Send_Data(&hfdcan1, 0x03F, Can_1_Data, &Route_Status.Coordinate_System.Robot_Coordinate_System_V, &Order_To_Subcontroller);
   }
 
@@ -299,9 +302,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // 定时器里面不断算卡尔曼滤波的结果，为保证角度更新和位置更新频率一致，陀螺仪数值更新也在这里
     kalman_filter_update(&kr_X, Computer_Vision_Data.LiDAR.X, Disk_Encoder.Cod.Chassis_Position_From_Disk.X);
     kalman_filter_update(&kr_Y, Computer_Vision_Data.LiDAR.Y, Disk_Encoder.Cod.Chassis_Position_From_Disk.Y);
-    Final_Now_Pos.X = kr_X.x;         // 卡尔曼滤波后的X坐标
-    Final_Now_Pos.Y = kr_Y.x;        // 卡尔曼滤波后的Y坐
-    Final_Now_Pos.W = Wit_Gyro.yaw; // 角度直接取光电门的角度
+    //Final_Now_Pos.X = kr_X.x;         // 卡尔曼滤波后的X坐标
+    //Final_Now_Pos.Y = kr_Y.x;        // 卡尔曼滤波后的Y坐
+    //Final_Now_Pos.W = Wit_Gyro.yaw; // 角度直接取光电门的角度
+    Final_Now_Pos.X = Disk_Encoder.Cod.Chassis_Position_From_Disk.X; // 卡尔曼滤波后的X坐标
+    Final_Now_Pos.Y = Disk_Encoder.Cod.Chassis_Position_From_Disk.Y; // 卡尔曼滤波后的Y
+    Final_Now_Pos.W = Disk_Encoder.Yaw.World_Rotation_Angle; // 角度直接取光电门的角度
   }
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM1)

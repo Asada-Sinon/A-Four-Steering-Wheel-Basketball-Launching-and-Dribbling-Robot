@@ -9,8 +9,8 @@
 #include "Computer_Vision.h"
 #include "route.h"
 
-#define A1_MOTOR_POSITION_BOTTOM 215		// 丝杠拉到最下面的位置
-#define A1_MOTOR_POSITION_TOP -7			// 丝杠拉到最上面扳机扣上的位置
+#define A1_MOTOR_POSITION_BOTTOM 215	  // 丝杠拉到最下面的位置
+#define A1_MOTOR_POSITION_TOP -7		  // 丝杠拉到最上面扳机扣上的位置
 #define A1_MOTOR_POSITION_THREE_POINTE 50 // 丝杠三分线位置
 
 Motor_Struct ShangCeng_motor[4]; // 上层电机，0是运球左侧2006，1是运球右侧2006，2是相机2006，3是扳机3508
@@ -27,70 +27,59 @@ float A1_Command_Pos = 0;				   // 这个变量用于存储A1电机位置命令
 void Dribble_Once() // 正赛运球
 {
 	// 运球之前先等一下停稳球
-	osDelay(1000);
-
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(300);
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);	   // 小气缸推球
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	   // 大气缸推球
-	osDelay(300);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET); // 收大气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
 }
 
 void Dribble_Twice() // 运球赛运球
 {
-	// 运球之前先等一下停稳球
-	osDelay(400);
-
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(700);
+	osDelay(600);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);	   // 大气缸推球
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);  // 大气缸推球
 	osDelay(300);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET); // 收大气缸
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	  // 收大气缸
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
 	// 连续两次运球中间间隔时间
-	//git test
+	// git test
 	// osDelay(1500);
 	osDelay(400);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(700);
+	osDelay(600);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);	   // 大气缸推球
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);  // 大气缸推球
 	osDelay(300);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET); // 收大气缸
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	  // 收大气缸
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
-	// 收完气缸之后等球弹上来再走
-	// osDelay(300);
+														  // 收完气缸之后等球弹上来再走
+														  // osDelay(300);
 }
 
 void ShangCeng_Init()
 {
 	// 上层电机初始化
-	PID_Init_Each(&ShangCeng_motor[0].Speed_PID, 1, 0, 3); // 0是运球左侧2006
-	PID_Init_Each(&ShangCeng_motor[1].Speed_PID, 1, 0, 3); // 1是运球右侧2006
-	PID_Init_Each(&ShangCeng_motor[2].Speed_PID, 3, 0, 3); // 2是相机2006
-	PID_Init_Each(&ShangCeng_motor[3].Speed_PID, 1, 0, 3); // 3是扳机3508
+	PID_Init_Each(&ShangCeng_motor[0].Speed_PID, 1, 0, 3);	// 0是运球左侧2006
+	PID_Init_Each(&ShangCeng_motor[1].Speed_PID, 1, 0, 3);	// 1是运球右侧2006
+	PID_Init_Each(&ShangCeng_motor[2].Speed_PID, 3, 0, 3);	// 2是相机2006
+	PID_Init_Each(&ShangCeng_motor[3].Speed_PID, 1, 0, 3);	// 3是扳机3508
 	PID_Init_Each(&ShangCeng_motor[0].Angle_PID, 1, 0, 10); // 0是运球左侧2006
 	PID_Init_Each(&ShangCeng_motor[1].Angle_PID, 1, 0, 10); // 1是运球右侧2006
 	PID_Init_Each(&ShangCeng_motor[2].Angle_PID, 1, 0, 10); // 2是相机2006
 	PID_Init_Each(&ShangCeng_motor[3].Angle_PID, 1, 0, 15); // 3是扳机3508
-	Camera_Angle = CAMERA_ANGLE_START;					   // 相机起始位置
-	Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_START;	   // 运球2006起始位置
-	Trigger_Angle = Trigger_ANGLE_START;				   // 扳机起始位置
-	g_a1motor.command.id = 0x00;
-	g_a1motor.command.mode = 0x0A;
-	g_a1motor.command.kw = 3;
-	while(!Fire_Start_Check)
-	{//上电让丝杠上升去找光电门
-		g_a1motor.command.velocity = -20;
-	}
-	//A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
-	Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
+	Camera_Angle = CAMERA_ANGLE_START;						// 相机起始位置
+	Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_START;		// 运球2006起始位置
+	Trigger_Angle = Trigger_ANGLE_START;					// 扳机起始位置
+	// g_a1motor.command.id = 0x00;
+	// g_a1motor.command.mode = 0x0A;
+	// g_a1motor.command.kw = 3;
+	// while (!Fire_Start_Check)
+	// { // 上电让丝杠上升去找光电门
+	// 	g_a1motor.command.velocity = -20;
+	// }
+	// // A1_Angle_I_Want = A1_MOTOR_POSITION_TOP;// 丝杠拉到最上面扳机扣上的位置
+	// Trigger_Angle = Trigger_ANGLE_LOCK; // 扳机锁死位置
 }
 
 /**
@@ -131,31 +120,18 @@ static int32_t ABSint32(int32_t value)
  * @param   Flag 球已经到发射装置的标志位
  * @return  uint8_t 1:运球装置已经到中间位置
  *********************************************************************************/
-uint8_t Pass_Ball_From_Dribble_To_Shoot(uint8_t *Flag)
+uint8_t Pass_Ball_From_Dribble_To_Shoot(void)
 {
-	int32_t Angle_D1 = ABSint32(ShangCeng_motor[0].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-	int32_t Angle_D2 = ABSint32(ShangCeng_motor[1].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-	while (Angle_D1 > 50 || Angle_D2 > 50)
+	A1_Angle_I_Want = 100;
+	if (fabs(g_a1motor.feedback.Position_Sum - 100) < 0.5f)
 	{
-		Angle_D1 = ABSint32(ShangCeng_motor[0].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-		Angle_D2 = ABSint32(ShangCeng_motor[1].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-		Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_IN;
-		osDelay(2);
-	}
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
-	osDelay(200);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	osDelay(200);
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	*Flag = 1;
-	Angle_D1 = ABSint32(ShangCeng_motor[0].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-	Angle_D2 = ABSint32(ShangCeng_motor[1].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_IN);
-	while (Angle_D1 > 50 || Angle_D2 > 50)
-	{
-		Angle_D1 = ABSint32(ShangCeng_motor[0].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_MEDIUM);
-		Angle_D2 = ABSint32(ShangCeng_motor[1].Angle_Sum) - ABSint32(DRIBBLE_MOTOR_ANGLE_MEDIUM);
-		Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_MEDIUM;
-		osDelay(2);
+		Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_IN;		   // 拉到中间位
+		osDelay(2000);										   // 等待2000ms，等待球到位
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);	   // 小气缸推球
+		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+		osDelay(1000); // 等待1000ms，等待球到位
+		Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_MEDIUM; // 拉到中间位置
+		A1_Angle_I_Want = 20;
 	}
 	return 1;
 }
@@ -172,12 +148,12 @@ uint8_t Reload(void)
 		Trigger_Angle = Trigger_ANGLE_LOCK;
 		osDelay(2);
 	}
-	//加气缸加速的话，代码写在这里
-	// while (Judge_A1_Position(A1_MOTOR_POSITION_THREE_POINTE, 0.1))
-	// {
-	// 	A1_Angle_I_Want = A1_MOTOR_POSITION_THREE_POINTE;
-	// 	osDelay(2);
-	// }
+	// 加气缸加速的话，代码写在这里
+	//  while (Judge_A1_Position(A1_MOTOR_POSITION_THREE_POINTE, 0.1))
+	//  {
+	//  	A1_Angle_I_Want = A1_MOTOR_POSITION_THREE_POINTE;
+	//  	osDelay(2);
+	//  }
 	return 1;
 }
 
@@ -243,9 +219,9 @@ uint8_t Fire()
 		// 丝杠没到位就直接卡死在这里
 		osDelay(2);
 	}
-	osDelay(500); // 等待丝杠到位
+	osDelay(500);						// 等待丝杠到位
 	Trigger_Angle = Trigger_ANGLE_FIRE; // 扳机拉到开火位置
-	osDelay(500); // 等待扳机到位
-	Reload_Flag = 1;						// 开火后需要换弹
-	return 1;								// 开火完成
+	osDelay(500);						// 等待扳机到位
+	Reload_Flag = 1;					// 开火后需要换弹
+	return 1;							// 开火完成
 }

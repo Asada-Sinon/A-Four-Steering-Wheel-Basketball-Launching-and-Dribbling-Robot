@@ -45,7 +45,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   // 串口7用来接收陀螺仪的数据
   if (huart->Instance == UART7)
   {
-    witdecoded(Gyro_data, &Wit_Gyro);
+    if (Gyro_data[0] == 0x55 && Gyro_data[1] == 0x53)
+    {
+      witdecoded(Gyro_data, &Wit_Gyro);
+    }
     Wit_Gyro_Restart();
   }
   // 串口10用来和A1电机通信
@@ -87,7 +90,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   // 串口7用来接收陀螺仪的数据
   if (huart->Instance == UART7)
   {
-    witdecoded(Gyro_data, &Wit_Gyro);
+    if (Gyro_data[0] == 0x55 && Gyro_data[1] == 0x53)
+    {
+      witdecoded(Gyro_data, &Wit_Gyro);
+    }
     Wit_Gyro_Restart();
   }
   // 串口10用来和A1电机通信

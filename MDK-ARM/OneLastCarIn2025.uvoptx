@@ -158,92 +158,77 @@
         <Ww>
           <count>0</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Angle_Dis</ItemText>
+          <ItemText>A1_Angle_I_Want</ItemText>
         </Ww>
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Angle_Offset</ItemText>
+          <ItemText>Fire_Start_Check,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Speed_Data_From_Teaching_Pendant</ItemText>
+          <ItemText>Route_Status</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>a,0x0A</ItemText>
+          <ItemText>i</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Computer_Vision_Data</ItemText>
+          <ItemText>g_a1motor</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>i</ItemText>
+          <ItemText>Disk_Encoder</ItemText>
         </Ww>
         <Ww>
           <count>6</count>
           <WinNumber>1</WinNumber>
-          <ItemText>route_Test</ItemText>
+          <ItemText>Computer_Vision_Data</ItemText>
         </Ww>
         <Ww>
           <count>7</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Route_Status</ItemText>
+          <ItemText>Wit_Gyro</ItemText>
         </Ww>
         <Ww>
           <count>8</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Order_To_Subcontroller,0x0A</ItemText>
+          <ItemText>Trigger_Angle,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>9</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Disk_Encoder</ItemText>
+          <ItemText>Teaching_Pendant_Data</ItemText>
         </Ww>
         <Ww>
           <count>10</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Teaching_Pendant_Data</ItemText>
+          <ItemText>Dribble_Motor_Angle,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>11</count>
           <WinNumber>1</WinNumber>
-          <ItemText>ShangCeng_motor,0x0A</ItemText>
+          <ItemText>teastsss</ItemText>
         </Ww>
         <Ww>
           <count>12</count>
           <WinNumber>1</WinNumber>
-          <ItemText>\\OneLastCarIn2025\../Core/Src/route.c\Route_Status</ItemText>
+          <ItemText>ShangCeng_motor,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>13</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Dribble_Route_Type</ItemText>
+          <ItemText>testbbb,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>14</count>
           <WinNumber>1</WinNumber>
-          <ItemText>Last_Dribble_Route_Type</ItemText>
-        </Ww>
-        <Ww>
-          <count>15</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>VESC_Data_From_Subcontroller,0x0A</ItemText>
-        </Ww>
-        <Ww>
-          <count>16</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>Fire_Start_Check,0x0A</ItemText>
-        </Ww>
-        <Ww>
-          <count>17</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>kr_X</ItemText>
+          <ItemText>Gyro_data</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

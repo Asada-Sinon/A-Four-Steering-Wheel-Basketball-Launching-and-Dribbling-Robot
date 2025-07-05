@@ -37,7 +37,7 @@ extern float labiaoData;
 
 uint8_t Fire(void);
 uint8_t Reload(void);
-uint8_t Pass_Ball_From_Dribble_To_Shoot(uint8_t *Flag);
+uint8_t Pass_Ball_From_Dribble_To_Shoot(void);
 void Calculate_Fire_Position(uint8_t competition_type);
 uint8_t Judge_A1_Position(float target_position, float threshold);
 void Dribble_Once(void);
