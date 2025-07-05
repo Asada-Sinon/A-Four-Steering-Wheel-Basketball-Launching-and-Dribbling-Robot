@@ -47,10 +47,10 @@ void Dribble_Twice() // 运球赛运球
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
 	osDelay(700);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	   // 大气缸推球
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);	   // 大气缸推球
 	osDelay(300);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET); // 收大气缸
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET); // 收大气缸
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
 	// 连续两次运球中间间隔时间
 	//git test
@@ -59,10 +59,10 @@ void Dribble_Twice() // 运球赛运球
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET); // 小气缸推球
 	osDelay(700);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET);	   // 大气缸推球
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET);	   // 大气缸推球
 	osDelay(300);
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_RESET); // 收小气缸
-	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_RESET); // 收大气缸
+	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_9, GPIO_PIN_SET); // 收大气缸
 	HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET);  // 气泵开始吸气
 	// 收完气缸之后等球弹上来再走
 	// osDelay(300);

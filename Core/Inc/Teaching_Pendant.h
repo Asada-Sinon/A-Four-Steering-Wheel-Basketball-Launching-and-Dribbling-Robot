@@ -30,6 +30,7 @@ typedef enum
 typedef struct
 {
     // 这几个开关从左到右
+    //向上是-1，向下是1
     float Fire; // 三档带回弹，默认是0,Fire-1
     float Automatic_Switch; // 两档,自动-1/手动1切换
     float Automatic_Aiming_Switch; // 两档，自动-1/手动1切换

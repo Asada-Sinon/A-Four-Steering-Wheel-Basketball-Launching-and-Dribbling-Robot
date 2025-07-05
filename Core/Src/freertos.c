@@ -56,7 +56,11 @@ uint8_t testbbb = 0;
 float route_Test[6] = {0, 0, 0, 0};                                    // 用于测试的数组
 Coordinate_Speed_Struct Word_Coordinate_Speed_For_Gamepad = {0, 0, 0}; // 世界坐标系下零速度
 Coordinate_Speed_Struct mingsang_Coordinate_Speed = {0, 0, 0};         // 马铭泽要的坐标系速度
-Competition_Mode_ENUM Competition_Mode = Competition_Mode_None;        // 竞赛模式,这是代码大和谐的关键
+uint8_t Dribble_Pre_Next_point_Flag = 0;
+Robot_Route_From_Teaching_Pendant_ENUM Dribble_Route_Type = Route_Type_0;
+Robot_Route_From_Teaching_Pendant_ENUM Last_Dribble_Route_Type = Route_Type_0; // 上次运球赛路径类型
+uint8_t Route_Executed_Flag[10] = {0};                                         // 索引0不用，1-8对应Route_Type_1到Route_Type_8，9对应Route_Type_Reset
+Competition_Mode_ENUM Competition_Mode = Competition_Mode_Dribble_Preliminary; // 竞赛模式,这是代码大和谐的关键
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
 extern Route_STU Route_Status;
@@ -104,6 +108,13 @@ const osThreadAttr_t Reload_attributes = {
     .stack_size = 128 * 4,
     .priority = (osPriority_t)osPriorityLow,
 };
+/* Definitions for Test */
+osThreadId_t TestHandle;
+const osThreadAttr_t Test_attributes = {
+    .name = "Test",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -114,6 +125,7 @@ void StartDefaultTask(void *argument);
 void RoutTask(void *argument);
 void ShootTask(void *argument);
 void ReloadTask(void *argument);
+void TestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -157,6 +169,9 @@ void MX_FREERTOS_Init(void)
   /* creation of Reload */
   ReloadHandle = osThreadNew(ReloadTask, NULL, &Reload_attributes);
 
+  /* creation of Test */
+  TestHandle = osThreadNew(TestTask, NULL, &Test_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -179,9 +194,61 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
+    // 手柄和标志位任务
     if (Competition_Mode == Competition_Mode_Dribble_Preliminary)
     {
       // 运球预选赛
+      if (Dribble_Pre_Next_point_Flag == 0)
+      {
+        // 上面这个标志位是为了防止拨杆向下时，数字一直加
+        if (Teaching_Pendant_Data.Fire == 1)
+        {
+          // 最左侧拨杆向下，0是无路径，从一开始
+          Dribble_Pre_Next_point_Flag = 1;
+          if (Dribble_Route_Type != Route_Type_Reset)
+          {
+            // 这里是保护，正常来讲不会跑到这里，这里防止操作手作死完赛还瞎按，保护操作手
+            if (Dribble_Route_Type < Route_Type_8)
+            {
+              Dribble_Route_Type++;
+            }
+            else
+            {
+              Dribble_Route_Type = Route_Type_0; // 回到起始点
+            }
+          }
+          else
+          {
+            Dribble_Pre_Next_point_Flag = 1;
+            Route_Executed_Flag[Last_Dribble_Route_Type] = 0; // 重置上次运球赛路径类型的执行标志位
+            Dribble_Route_Type = Last_Dribble_Route_Type;     // 回到上一点
+            Route_Executed_Flag[Route_Type_Reset] = 0;        // 也对Reset点进行保护
+          }
+        }
+        if (Teaching_Pendant_Data.Fire == -1)
+        {
+          // 最左侧拨杆向上，进入reset逻辑
+          if (Dribble_Route_Type != Route_Type_Reset)
+          {
+            Dribble_Pre_Next_point_Flag = 1;
+            Dribble_Route_Type = Route_Type_Reset;
+          }
+          else if (Dribble_Route_Type == Route_Type_Reset)
+          {
+            Dribble_Pre_Next_point_Flag = 1;
+            Route_Executed_Flag[Last_Dribble_Route_Type] = 0; // 重置上次运球赛路径类型的执行标志位
+            Dribble_Route_Type = Last_Dribble_Route_Type;     // 回到上一点
+            Route_Executed_Flag[Route_Type_Reset] = 0;        // 也对Reset点进行保护
+          }
+        }
+      }
+      if (Dribble_Pre_Next_point_Flag == 1)
+      {
+        if (Teaching_Pendant_Data.Fire == 0)
+        {
+          Dribble_Pre_Next_point_Flag = 0;
+        }
+      }
     }
     else if (Competition_Mode == Competition_Mode_Shoot_Preliminary)
     {
@@ -190,83 +257,6 @@ void StartDefaultTask(void *argument)
     else if (Competition_Mode == Competition_Mode_Final)
     {
       // 正赛
-    }
-    // /*===================================================================================================================
-    //                 车身自瞄，车身自瞄期间，车的朝向只能能处于[-90, 90]度之间（即只能朝向对面半场）
-    // =====================================================================================================================*/
-    // if (Teaching_Pendant.Automatic_Aiming_Switch == 1 && Teaching_Pendant.Automatic_Switch == 0)
-    // {
-    //   //只有当手动路径时才能开启自瞄，防止自动路径时自瞄导致车身角度不对
-    //   if (Computer_Vision_Data.Camera.Kinect.Z != 0)
-    //   {
-    //     // 通过摄像机实现自瞄（摄像机越往右面像素点值越大）
-    //     PID_Calculate_Positional(&Automatic_Aiming_PID, Computer_Vision_Data.Camera.Kinect.X, 0);
-    //     Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_PID.Output;
-    //   }
-    //   else
-    //   {
-    //     // 通过坐标位置信息来实现自瞄
-    //     Data_For_Automatic_Aiming.X = Basket_Position.X - World_Coordinate_System_NowPos.X;
-    //     Data_For_Automatic_Aiming.Y = Basket_Position.Y - World_Coordinate_System_NowPos.Y;
-    //     Data_For_Automatic_Aiming.W = atanf(Data_For_Automatic_Aiming.X / Data_For_Automatic_Aiming.Y);
-    //     Data_For_Automatic_Aiming.W = Data_For_Automatic_Aiming.W * CHANGE_TO_ANGLE;
-    //     PID_Calculate_Positional(&Automatic_Aiming_PID, World_Coordinate_System_NowPos.W, -Data_For_Automatic_Aiming.W);
-    //     Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_PID.Output;
-    //   }
-    // }
-    // else
-    // {
-    //   // 如果自瞄关了，车身角度控制由手柄接管
-    //   Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant.W;
-    // }
-    /*===================================================================================================================
-                                                  运球预选赛相关
-    =====================================================================================================================*/
-    if (route_Test[0] == 1)
-    {
-      Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_OUT; // 运球装置拉到最外面
-      Keep_Position_Speed(-728, -772, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-
-      Keep_Position_Speed(-717, -2501, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-
-      Keep_Position_Speed(1307, -2462, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-      // Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 12500);
-
-      Keep_Position_Speed(3319, -2444, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-
-      Keep_Position_Speed(3287, -716, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-      Keep_Position_Speed(2514, 29, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-      Keep_Position_Speed(0, 0, 0, 12500);
-      Order_To_Subcontroller.Wheel_Break = 1;
-      Dribble_Twice(); // 运球赛运球
-      Order_To_Subcontroller.Wheel_Break = 0;
-      osDelay(400); // 等待运球完成
-
-      route_Test[0] = 0; // 重置标志位
     }
     osDelay(2);
   }
@@ -286,53 +276,154 @@ void RoutTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    // data2send[0] = Computer_Vision_Data.LiDAR.X;
-    // data2send[1] = Computer_Vision_Data.LiDAR.Y;
-    // data2send[2] = Computer_Vision_Data.LiDAR.W;
-    // data2send[3] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx;
-    // data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
-    // data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
-    // Usart_Send_To_Show32(&huart7, data2send);
-    labiao(2);
-    // 手动路径相关
-    if (Teaching_Pendant_Data.Automatic_Switch == 1)
-    {
-      // 直接赋值车身坐标系速度
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
-      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
-      // 车身坐标系速度转化为马铭泽要的坐标系速度（车的开始位置有讲究）
-      /*---------------------------------------------------------------------------
-      |                                                                            |
-      |                               半场地图                                      |
-      |                                                                            |
-      |                                                                            |
-      |车（车头朝下）                    篮筐                                        |
-      |----------------------------------------------------------------------------*/
-      /* 操作手在这里*/
-      //      Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
-      //      mingsang_Coordinate_Speed.Vx = -Word_Coordinate_Speed_For_Gamepad.Vx;
-      //      mingsang_Coordinate_Speed.Vy = -Word_Coordinate_Speed_For_Gamepad.Vy;
-      //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = mingsang_Coordinate_Speed.Vx;
-      //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = mingsang_Coordinate_Speed.Vy;
-      //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
-    }
-    // if(Teaching_Pendant_Data.Automatic_Switch == -1)
-    // {
-    //   Chassis_Line_Route(0, 1000, 0, 1500, 4000, 1000, 50, 100, 0.01f, 0.4f, 200, 8, 15);
-    // }
-
-    // 检查是否到两个视觉识别点的函数，需要一直跑来检测
-    Check_Near_Vision_Points(&Vision_Point_Flag, 20);
-    // Dribble_Pre_Competition();
-    //Dribble_Twice();
-    //HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
-    /*===================================================================================================================
-                                                  运球预选赛相关
-    =====================================================================================================================*/
+    // 路径任务
     if (Competition_Mode == Competition_Mode_Dribble_Preliminary)
     {
-      Dribble_Pre_Competition();
+      // 运球预选赛
+      if (Dribble_Route_Type == Route_Type_Reset)
+      {
+        if (Route_Executed_Flag[Route_Type_Reset] == 0)
+        {
+          HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_SET); // 保证reset时气泵一直吸气
+          Dribble_Pre_Check_Near_Reset_Points_And_Go();
+          Route_Executed_Flag[Route_Type_Reset] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_1)
+      {
+        if (Route_Executed_Flag[Route_Type_1] == 0)
+        {
+          Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_OUT; // 运球装置拉到最外面
+          Keep_Position_Speed(2458, -2204, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_1; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_1] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_2)
+      {
+        if (Route_Executed_Flag[Route_Type_2] == 0)
+        {
+          Keep_Position_Speed(1730, -2976, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_2; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_2] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_3)
+      {
+        if (Route_Executed_Flag[Route_Type_3] == 0)
+        {
+          Keep_Position_Speed(1741, -4705, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_3; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_3] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_4)
+      {
+        if (Route_Executed_Flag[Route_Type_4] == 0)
+        {
+          Keep_Position_Speed(3765, -4666, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_4; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_4] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_5)
+      {
+        if (Route_Executed_Flag[Route_Type_5] == 0)
+        {
+          Keep_Position_Speed(5777, -4648, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_5; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_5] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_6)
+      {
+        if (Route_Executed_Flag[Route_Type_6] == 0)
+        {
+          Keep_Position_Speed(5745, -2920, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_6; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_6] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_7)
+      {
+        if (Route_Executed_Flag[Route_Type_7] == 0)
+        {
+          Keep_Position_Speed(4972, -2175, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_7; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Dribble_Twice(); // 运球赛运球
+          Order_To_Subcontroller.Wheel_Break = 0;
+          osDelay(400); // 等待运球完成
+          Route_Executed_Flag[Route_Type_7] = 1;
+        }
+      }
+      if (Dribble_Route_Type == Route_Type_8)
+      {
+        if (Route_Executed_Flag[Route_Type_8] == 0)
+        {
+          Keep_Position_Speed(1000, -2175, 0, 12500);
+          Last_Dribble_Route_Type = Route_Type_8; // 储存上次运球赛路径类型
+          Order_To_Subcontroller.Wheel_Break = 1;
+          Order_To_Subcontroller.Wheel_Break = 0;
+          Route_Executed_Flag[Route_Type_8] = 1;
+          Keep_Position_Speed(100, -100, 0, 12500);
+        }
+      }
+    }
+    else if (Competition_Mode == Competition_Mode_Shoot_Preliminary)
+    {
+      // 投球预选赛
+      // 手动路径相关
+      if (Teaching_Pendant_Data.Automatic_Switch == 1)
+      {
+        // 直接赋值车身坐标系速度
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+        // 车身坐标系速度转化为马铭泽要的坐标系速度（车的开始位置有讲究）
+        /*---------------------------------------------------------------------------
+        |                                                                            |
+        |                               半场地图                                      |
+        |                                                                            |
+        |                                                                            |
+        |车（车头朝下）                    篮筐                                        |
+        |----------------------------------------------------------------------------*/
+        /* 操作手在这里*/
+        //      Word_Coordinate_Speed_For_Gamepad = Speed_Coordinate_Transformation(&Teaching_Pendant_Data.Joystick_V, &Word_Coordinate_Speed_For_Gamepad,-Computer_Vision_Data.LiDAR.W);
+        //      mingsang_Coordinate_Speed.Vx = -Word_Coordinate_Speed_For_Gamepad.Vx;
+        //      mingsang_Coordinate_Speed.Vy = -Word_Coordinate_Speed_For_Gamepad.Vy;
+        //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = mingsang_Coordinate_Speed.Vx;
+        //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = mingsang_Coordinate_Speed.Vy;
+        //      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
+      }
+    }
+    else if (Competition_Mode == Competition_Mode_Final)
+    {
+      // 正赛
     }
     osDelay(2);
   }
@@ -352,13 +443,13 @@ void ShootTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    if (Start_Pass_Ball_From_Dribble_To_Shoot_Flag)
-    {
-      // 将球从运球装置转移到投球装置上
-      // Dribble_Structure_In_Medium_Flag = Pass_Ball_From_Dribble_To_Shoot(&Ball_On_Shoot_Structure_Flag);
-      Pass_Ball_From_Dribble_To_Shoot(&Ball_On_Shoot_Structure_Flag);
-      Start_Pass_Ball_From_Dribble_To_Shoot_Flag = 0;
-    }
+    // if (Start_Pass_Ball_From_Dribble_To_Shoot_Flag)
+    // {
+    //   // 将球从运球装置转移到投球装置上
+    //   // Dribble_Structure_In_Medium_Flag = Pass_Ball_From_Dribble_To_Shoot(&Ball_On_Shoot_Structure_Flag);
+    //   Pass_Ball_From_Dribble_To_Shoot(&Ball_On_Shoot_Structure_Flag);
+    //   Start_Pass_Ball_From_Dribble_To_Shoot_Flag = 0;
+    // }
     osDelay(2);
   }
   /* USER CODE END ShootTask */
@@ -378,30 +469,72 @@ void ReloadTask(void *argument)
   for (;;)
   {
     // 这个任务里面写发射装置的相关机构
-    if (Reload_Flag)
-    {
-      // 在换弹时A1拉丝杠到最上面位置，然后拉到三分线投球的位置
-      // 这个函数会一直卡在这里直到换弹完成
-      Finish_Reload_Flag = Reload();
-      Reload_Flag = 0;
-    }
-    // Adjusting_Fire_Angle_Flag为1的时候丝杠的控制权交给操手
-    //  else if(!Reload_Flag && !Adjusting_Fire_Angle_Flag)
-    //  {
-    //    //不换弹的其他时间不断计算，A1时刻在跑
-    //    Calculate_Fire_Position(Competition_Mode_Shoot_Preliminary); // 计算A1拉丝杠到的位置
-    //  }
-    //  在程序里面自动开火或者操作手根据情况手动开火，两种有一个置为1直接开火
-    if (Teaching_Pendant.Fire == -1 || Teaching_Pendant_Data.Fire == -1)
-    {
-      Finish_Fire_Flag = 0; // 开火前将开火完成标志位置为0
-      Finish_Fire_Flag = Fire();
-      Teaching_Pendant.Fire = 0;      // 开火后将开火标志位置为0
-      Teaching_Pendant_Data.Fire = 0; // 开火后将开火标志位置为0
-    }
+    // if (Reload_Flag)
+    // {
+    //   // 在换弹时A1拉丝杠到最上面位置，然后拉到三分线投球的位置
+    //   // 这个函数会一直卡在这里直到换弹完成
+    //   Finish_Reload_Flag = Reload();
+    //   Reload_Flag = 0;
+    // }
+    // //  在程序里面自动开火或者操作手根据情况手动开火，两种有一个置为1直接开火
+    // if (Teaching_Pendant.Fire == -1 || Teaching_Pendant_Data.Fire == -1)
+    // {
+    //   Finish_Fire_Flag = 0; // 开火前将开火完成标志位置为0
+    //   Finish_Fire_Flag = Fire();
+    //   Teaching_Pendant.Fire = 0;      // 开火后将开火标志位置为0
+    //   Teaching_Pendant_Data.Fire = 0; // 开火后将开火标志位置为0
+    // }
     osDelay(2);
   }
   /* USER CODE END ReloadTask */
+}
+
+/* USER CODE BEGIN Header_TestTask */
+/**
+ * @brief Function implementing the Test thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_TestTask */
+void TestTask(void *argument)
+{
+  /* USER CODE BEGIN TestTask */
+  /* Infinite loop */
+  for (;;)
+  {
+    // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+    // if (route_Test[0] == 1)
+    // {
+    //   Keep_Position_Speed(route_Test[1], route_Test[2], route_Test[3], 12500);
+    //   route_Test[0] = 0; // 重置标志位
+    // }
+    // labiao(2);
+    // 检查是否到两个视觉识别点的函数，需要一直跑来检测
+    // Check_Near_Vision_Points(&Vision_Point_Flag, 20);
+    // Dribble_Pre_Competition();
+    // Dribble_Twice();
+    // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
+    // data2send[0] = VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller;
+    // data2send[1] = VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller;
+    // data2send[2] = VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller;
+    // data2send[3] = VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller;
+    // data2send[4] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy;
+    // data2send[5] = Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw;
+    // Usart_Send_To_Show32(&huart7, data2send);
+    if (Teaching_Pendant_Data.Automatic_Switch == -1)
+    {
+      // 直接赋值车身坐标系速度
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
+      Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = Teaching_Pendant_Data.Joystick_V.Vw;
+    }
+    Keep_Position_Speed(100, -400, 0, 12500);
+    Keep_Position_Speed(600, -400, 0, 12500);
+    Keep_Position_Speed(600, 100, 0, 12500);
+    Keep_Position_Speed(100, 100, 0, 12500);
+    osDelay(2);
+  }
+  /* USER CODE END TestTask */
 }
 
 /* Private application code --------------------------------------------------*/

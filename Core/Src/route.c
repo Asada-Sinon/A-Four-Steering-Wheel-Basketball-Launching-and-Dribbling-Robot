@@ -2287,8 +2287,7 @@ void Shoot_Pre_Competition(void)
 //     }
 // }
 
-
-//这套参数Limit_Speed取12500
+// 这套参数Limit_Speed取12500
 void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
 {
     // PID_Struct Keep_X_PID;
@@ -2381,10 +2380,10 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             else // X_remain < 200
             {
                 // 小距离时使用固定PID参数
-                Keep_X_PID.Kp = 15.0f;
+                Keep_X_PID.Kp = 20.0f;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = -10.0f; // 前馈补偿
+                Keep_X_PID.Forward = 500.0f; // 前馈补偿
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
@@ -2402,7 +2401,6 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                 // {
                 //     Keep_X_PID.Output -= 100.0f;
                 // }
-
             }
 
             // if (ABS(Keep_X_PID.Output) < 600.0f)
@@ -2439,12 +2437,13 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             Keep_W_PID.Kd = 0.0f;
             Keep_X_PID.Forward = 1000.0f; // 前馈补偿
 
-            PID_Calculate_Positional_With_Forward(&Keep_W_PID,  World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
+            PID_Calculate_Positional_With_Forward(&Keep_W_PID, World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
 
             // 限制角速度输出
             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
 
-            Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;; // Keep_W_PID.Output;
+            Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
+            ; // Keep_W_PID.Output;
         }
         else
         {
@@ -2470,7 +2469,11 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 停止判断
         ---------------------------------------------------------------------------------------------------------------*/
         // 当X方向误差小于阈值时停止
-        if (X_remain <= 5.0f && angle_remain <= 0.5f) //&& angle_remain <= 1.0f)
+        if (X_remain <= 5.0f && // angle_remain <= 0.5f &&
+            VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller < 100 &&
+            VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller < 100 &&
+            VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller < 100 &&
+            VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller < 100) //&& angle_remain <= 1.0f)
         {
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
@@ -2495,5 +2498,70 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
     }
 }
 
+/*********************************************************************************
+ * @name    Dribble_Pre_Check_Near_Reset_Points_And_Go
+ * @brief   检查是否接近三个运球赛预设Reset点，并自动导航到最近的点
+ *
+ * @details 计算当前雷达位置到三个预设视觉点的距离，
+ *          找到最近的点并自动导航过去
+ *          如果接近视觉点1，则设置标志为1；
+ *          如果接近视觉点2，则设置标志为2；
+ *          如果接近视觉点3，则设置标志为3；
+ *          如果不接近任何点，则自动导航到最近的点
+ *
+ * @return  void
+ *********************************************************************************/
+void Dribble_Pre_Check_Near_Reset_Points_And_Go(void)
+{
+    // 定义三个预设的视觉识别点坐标
+    const Coordinate_Position_Struct Reset_Point1 = {1741, -5200, 0};  // 视觉点1
+    const Coordinate_Position_Struct Reset_Point2 = {3765, -5200, 0}; // 视觉点2
+    const Coordinate_Position_Struct Reset_Point3 = {5730, -5200, 0};  // 视觉点3（中间点）
+    const Coordinate_Position_Struct Reset_Point4 = {1000, -2950, 0};  // 视觉点4（中间点）
+    const Coordinate_Position_Struct Reset_Point5 = {6400, -2950, 0};  // 视觉点5（中间点）
 
 
+    // 计算当前雷达位置到三个视觉点的距离
+    float distance1 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point1.X, 2) +
+                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point1.Y, 2));
+
+    float distance2 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point2.X, 2) +
+                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point2.Y, 2));
+
+    float distance3 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point3.X, 2) +
+                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point3.Y, 2));
+
+    float distance4 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point4.X, 2) +
+                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point4.Y, 2));
+
+    float distance5 = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Reset_Point5.X, 2) +
+                            pow(Computer_Vision_Data.LiDAR.Y - Reset_Point5.Y, 2));
+    // 找到最近的视觉点
+    float min_distance = distance1;
+    Coordinate_Position_Struct nearest_point = Reset_Point1;
+    if (distance2 < min_distance)
+    {
+        min_distance = distance2;
+        nearest_point = Reset_Point2;
+    }
+
+    if (distance3 < min_distance)
+    {
+        min_distance = distance3;
+        nearest_point = Reset_Point3;
+    }
+
+    if (distance4 < min_distance)
+    {
+        min_distance = distance4;
+        nearest_point = Reset_Point4;
+    }
+
+    if (distance5 < min_distance)
+    {
+        min_distance = distance5;
+        nearest_point = Reset_Point5;
+    }
+    // 自动导航到最近的视觉点
+    Keep_Position_Speed(nearest_point.X, nearest_point.Y, nearest_point.W, 12500);
+}
