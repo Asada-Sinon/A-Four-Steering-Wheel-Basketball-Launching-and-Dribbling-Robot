@@ -64,7 +64,7 @@ uint8_t Dribble_Pre_Next_point_Flag = 0;
 Robot_Route_From_Teaching_Pendant_ENUM Dribble_Route_Type = Route_Type_0;
 Robot_Route_From_Teaching_Pendant_ENUM Last_Dribble_Route_Type = Route_Type_0; // 上次运球赛路径类型
 uint8_t Route_Executed_Flag[10] = {0};                                         // 索引0不用，1-8对应Route_Type_1到Route_Type_8，9对应Route_Type_Reset
-Competition_Mode_ENUM Competition_Mode = Competition_Mode_None;                // 竞赛模式,这是代码大和谐的关键
+Competition_Mode_ENUM Competition_Mode = Competition_Mode_Dribble_Preliminary;                // 竞赛模式,这是代码大和谐的关键
 extern uint8_t Can_1_Data[16];
 extern Coordinate_Speed_Struct i;
 extern Route_STU Route_Status;
@@ -209,8 +209,6 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = Teaching_Pendant_Data.Joystick_V.Vx;
-    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = Teaching_Pendant_Data.Joystick_V.Vy;
     // 手柄和标志位任务
     if (Competition_Mode == Competition_Mode_Dribble_Preliminary)
     {
@@ -311,7 +309,7 @@ void RoutTask(void *argument)
         if (Route_Executed_Flag[Route_Type_1] == 0)
         {
           Dribble_Motor_Angle = DRIBBLE_MOTOR_ANGLE_OUT; // 运球装置拉到最外面
-          Keep_Position_Speed(2458, -2204, 0, 10000);
+          Keep_Position_Speed(2458, -2204, 0, 14000);
           Last_Dribble_Route_Type = Route_Type_1; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -324,7 +322,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_2] == 0)
         {
-          Keep_Position_Speed(1730, -2976, 0, 15000);
+          Keep_Position_Speed(1730, -2976, 0, 14000);
           Last_Dribble_Route_Type = Route_Type_2; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -337,7 +335,7 @@ void RoutTask(void *argument)
       {
         if (Route_Executed_Flag[Route_Type_3] == 0)
         {
-          Keep_Position_Speed(1741, -4705, 0, 15000);
+          Keep_Position_Speed(1741, -4705, 0, 14000);
           Last_Dribble_Route_Type = Route_Type_3; // 储存上次运球赛路径类型
           Order_To_Subcontroller.Wheel_Break = 1;
           Dribble_Twice(); // 运球赛运球
@@ -573,7 +571,7 @@ void TestTask(void *argument)
     // 检查是否到两个视觉识别点的函数，需要一直跑来检测
     // Check_Near_Vision_Points(&Vision_Point_Flag, 20);
     // Dribble_Pre_Competition();
-    Dribble_Twice();
+    //Dribble_Twice();
     // HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     //    data2send[0] = VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller;
     //     data2send[1] = VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller;
@@ -594,7 +592,7 @@ void TestTask(void *argument)
       HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8, GPIO_PIN_SET);    // 小气缸推球
       HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10, GPIO_PIN_RESET); // 气泵停止吸气
     }
-    osDelay(2000);
+    osDelay(2);
   }
   /* USER CODE END TestTask */
 }

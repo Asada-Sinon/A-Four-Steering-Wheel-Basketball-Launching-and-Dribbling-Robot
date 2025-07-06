@@ -2495,11 +2495,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 停止判断
         ---------------------------------------------------------------------------------------------------------------*/
         // 当X方向误差小于阈值时停止
-        if (X_remain <= 20.0f && angle_remain <= 0.5f &&
-            VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller < 100 &&
-            VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller < 100 &&
-            VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller < 100 &&
-            VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller < 100) //&& angle_remain <= 1.0f)
+        if (X_remain <= 20.0f && angle_remain <= 0.5f) //&& angle_remain <= 1.0f)
         {
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
