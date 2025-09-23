@@ -1397,7 +1397,7 @@ float Automatic_Aiming_W_Calculate(uint8_t target_type, float custom_x, float cu
         Keep_W_PID.Kp = 100.0f;
         Keep_W_PID.Ki = 0.0f;
         Keep_W_PID.Kd = 0.0f;
-        Keep_X_PID.Forward = 1000.0f; // 前馈补偿
+        Keep_W_PID.Forward = 1000.0f; // 前馈补偿
         PID_Calculate_Positional_With_Forward(&Keep_W_PID, Computer_Vision_Data.LiDAR.W, Basketball_Angle);
         // 限制角速度输出
         Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
@@ -1490,30 +1490,30 @@ void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold)
  * @param   rotation_speed 旋转速度(带方向)
  * @return  uint8_t 1:检测到目标 0:未检测到目标
  *********************************************************************************/
-// static uint8_t RotateToAngle(float target_angle, float rotation_speed)
-// {
-//     // 旋转直到角度差值小于阈值
-//     while (fabsf(World_Coordinate_System_NowPos.W - target_angle) > 1.0f) // 1.0度阈值
-//     {
-//         // 检查视觉数据
-//         if (Computer_Vision_Data.Camera.RealSense.X != 0 &&
-//             Computer_Vision_Data.Camera.RealSense.Y != 0)
-//         {
-//             // 检测到目标，停止旋转
-//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0;
-//             // 锁住轮子确保能停住不转过，注释掉是因为还没找到在哪里把他置回0
-//             // Order_To_Subcontroller.Wheel_Break = 1;
-//             return 1;
-//         }
-//         // 设置旋转速度
-//         Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = rotation_speed;
-//         // 短暂延时避免阻塞
-//         osDelay(2);
-//     }
-//     // 到达目标位置，停止旋转
-//     Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0;
-//     return 0; // 未检测到目标
-// }
+static uint8_t RotateToAngle(float target_angle, float rotation_speed)
+{
+    // 旋转直到角度差值小于阈值
+    while (fabsf(World_Coordinate_System_NowPos.W - target_angle) > 1.0f) // 1.0度阈值
+    {
+        // 检查视觉数据
+        if (Computer_Vision_Data.Camera.RealSense.X != 0 &&
+            Computer_Vision_Data.Camera.RealSense.Y != 0)
+        {
+            // 检测到目标，停止旋转
+            Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0;
+            // 锁住轮子确保能停住不转过，注释掉是因为还没找到在哪里把他置回0
+            // Order_To_Subcontroller.Wheel_Break = 1;
+            return 1;
+        }
+        // 设置旋转速度
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = rotation_speed;
+        // 短暂延时避免阻塞
+        osDelay(2);
+    }
+    // 到达目标位置，停止旋转
+    Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0;
+    return 0; // 未检测到目标
+}
 
 /*********************************************************************************
  * @name    Vision_Search_Rotation
@@ -1523,33 +1523,33 @@ void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold)
  * @param   direction_first 初始旋转方向(0:先左转 1:先右转)
  * @return  uint8_t 0:未检测到目标 1:检测到目标
  *********************************************************************************/
-// uint8_t Vision_Search_Rotation(float rotation_speed, uint8_t direction_first)
-// {
-//     // 记录初始角度和目标角度
-//     float initial_angle = World_Coordinate_System_NowPos.W;
-//     float left_limit = initial_angle + 50.0f;  // 向左极限
-//     float right_limit = initial_angle - 50.0f; // 向右极限
-//     // 根据方向执行第一次旋转
-//     float speed = direction_first ? -rotation_speed : rotation_speed;
-//     float target = direction_first ? right_limit : left_limit;
-//     // 第一次旋转
-//     if (RotateToAngle(target, speed))
-//         return 1; // 找到目标
-//     // 切换方向，执行第二次旋转 (从一个极限到另一个极限)
-//     speed = -speed;
-//     target = direction_first ? left_limit : right_limit;
-//     if (RotateToAngle(target, speed))
-//         return 1; // 找到目标
-//     // 返回初始位置
-//     speed = (World_Coordinate_System_NowPos.W < initial_angle) ? rotation_speed : -rotation_speed;
-//     if (RotateToAngle(initial_angle, speed))
-//         return 1; // 找到目标
-//     return 0;     // 未找到目标
-// }
+uint8_t Vision_Search_Rotation(float rotation_speed, uint8_t direction_first)
+{
+    // 记录初始角度和目标角度
+    float initial_angle = World_Coordinate_System_NowPos.W;
+    float left_limit = initial_angle + 50.0f;  // 向左极限
+    float right_limit = initial_angle - 50.0f; // 向右极限
+    // 根据方向执行第一次旋转
+    float speed = direction_first ? -rotation_speed : rotation_speed;
+    float target = direction_first ? right_limit : left_limit;
+    // 第一次旋转
+    if (RotateToAngle(target, speed))
+        return 1; // 找到目标
+    // 切换方向，执行第二次旋转 (从一个极限到另一个极限)
+    speed = -speed;
+    target = direction_first ? left_limit : right_limit;
+    if (RotateToAngle(target, speed))
+        return 1; // 找到目标
+    // 返回初始位置
+    speed = (World_Coordinate_System_NowPos.W < initial_angle) ? rotation_speed : -rotation_speed;
+    if (RotateToAngle(initial_angle, speed))
+        return 1; // 找到目标
+    return 0;     // 未找到目标
+}
 
-// extern uint8_t Vision_Point_Flag;         // 到达视觉识别点1时置为1，到达视觉识别点2时置为2，其余时间都是0
-// uint8_t Vision1_Swing_To_Search_Flag = 0; // 在视觉识别点1左右旋转来寻找角落里的点
-// uint8_t Vision2_Swing_To_Search_Flag = 0; // 在视觉识别点2左右旋转来寻找角落里的点
+extern uint8_t Vision_Point_Flag;         // 到达视觉识别点1时置为1，到达视觉识别点2时置为2，其余时间都是0
+uint8_t Vision1_Swing_To_Search_Flag = 0; // 在视觉识别点1左右旋转来寻找角落里的点
+uint8_t Vision2_Swing_To_Search_Flag = 0; // 在视觉识别点2左右旋转来寻找角落里的点
 
 /*********************************************************************************
  * @name    No_Point_To_Go
@@ -1557,36 +1557,36 @@ void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold)
  * @details 函数在无视觉回传时会持续执行，每次调用只进行一次摆头搜索，
  *          若搜索不到目标则持续前进，直到检测到视觉数据
  *********************************************************************************/
-// void No_Point_To_Go(void)
-// {
-//     // 后续优化考虑在超过某个X的时候执行别的逻辑，一直看不到点的话会直接撞墙
-//     uint8_t Flag = 0; // 保证在调用一次No_Point_To_Go函数的时候不会摆两次头
-//     while (Computer_Vision_Data.Camera.RealSense.X == 0 &&
-//            Computer_Vision_Data.Camera.RealSense.Y == 0)
-//     {
-//         // 这里不用return因为在有视觉的数的时候就直接跳出了，不需要return也能达到同等效力
-//         //  确保在每个视觉识别点都只摆头两次
-//         //  根据当前位置执行一次摆头搜索（每次函数调用）
-//         if (!Flag)
-//         {
-//             // 根据视觉点标志选择相应的搜索策略
-//             if (Vision_Point_Flag == 1 && Vision1_Swing_To_Search_Flag < 2)
-//             {
-//                 Vision_Search_Rotation(800, Vision1_Swing_To_Search_Flag);
-//                 Vision1_Swing_To_Search_Flag++;
-//                 Flag = 1;
-//             }
-//             else if (Vision_Point_Flag == 2 && Vision2_Swing_To_Search_Flag < 2)
-//             {
-//                 Vision_Search_Rotation(800, Vision2_Swing_To_Search_Flag);
-//                 Vision2_Swing_To_Search_Flag++;
-//                 Flag = 1;
-//             }
-//         }
-//         Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 1000;
-//         osDelay(2);
-//     }
-// }
+void No_Point_To_Go(void)
+{
+    // 后续优化考虑在超过某个X的时候执行别的逻辑，一直看不到点的话会直接撞墙
+    uint8_t Flag = 0; // 保证在调用一次No_Point_To_Go函数的时候不会摆两次头
+    while (Computer_Vision_Data.Camera.RealSense.X == 0 &&
+           Computer_Vision_Data.Camera.RealSense.Y == 0)
+    {
+        // 这里不用return因为在有视觉的数的时候就直接跳出了，不需要return也能达到同等效力
+        //  确保在每个视觉识别点都只摆头两次
+        //  根据当前位置执行一次摆头搜索（每次函数调用）
+        if (!Flag)
+        {
+            // 根据视觉点标志选择相应的搜索策略
+            if (Vision_Point_Flag == 1 && Vision1_Swing_To_Search_Flag < 2)
+            {
+                Vision_Search_Rotation(800, Vision1_Swing_To_Search_Flag);
+                Vision1_Swing_To_Search_Flag++;
+                Flag = 1;
+            }
+            else if (Vision_Point_Flag == 2 && Vision2_Swing_To_Search_Flag < 2)
+            {
+                Vision_Search_Rotation(800, Vision2_Swing_To_Search_Flag);
+                Vision2_Swing_To_Search_Flag++;
+                Flag = 1;
+            }
+        }
+        Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 1000;
+        osDelay(2);
+    }
+}
 
 /*********************************************************************************
  * @name 	Line_Route_With_Changing_Target
@@ -1598,404 +1598,404 @@ void Check_Near_Vision_Points(uint8_t *flag_variable, float distance_threshold)
  *          难点在于目标位置在不断刷新，需要滤波处理，且参数需要动态调整
  *          局限性：目前只适用于视觉识别的情况，依赖全局变量更新目标点
  *********************************************************************************/
-// void Line_Route_With_Changing_Target(float Start_Speed, float Start_w, Route_STU *Status)
-// {
-//     // 因为要不断刷Target点，所以这个函数入参里面把Target去掉了（函数入参只在函数调用的时候入一次）
-//     // 现在的Target点在下面的while里面用全局变量不断刷
-//     // 带来局限性 -> 只能适用于现在视觉识别的情况
+void Line_Route_With_Changing_Target(float Start_Speed, float Start_w, Route_STU *Status)
+{
+    // 因为要不断刷Target点，所以这个函数入参里面把Target去掉了（函数入参只在函数调用的时候入一次）
+    // 现在的Target点在下面的while里面用全局变量不断刷
+    // 带来局限性 -> 只能适用于现在视觉识别的情况
 
-//     /*===============================================================================================================
-//                                                 变量初始化部分
-//     ===============================================================================================================*/
-//     uint8_t Check_Flag = 0; // 用于判断小电脑刚开始回传数据是否准确（刚开始刷三遍数据标志位）
-//     float Line_Distance = 0;
-//     Coordinate_Position_Struct Now_Target_Position;
-//     Coordinate_Position_Struct Last_Target_Position;
-//     Coordinate_Position_Struct Last_Last_Target_Position;
+    /*===============================================================================================================
+                                                变量初始化部分
+    ===============================================================================================================*/
+    uint8_t Check_Flag = 0; // 用于判断小电脑刚开始回传数据是否准确（刚开始刷三遍数据标志位）
+    float Line_Distance = 0;
+    Coordinate_Position_Struct Now_Target_Position;
+    Coordinate_Position_Struct Last_Target_Position;
+    Coordinate_Position_Struct Last_Last_Target_Position;
 
-//     Order_To_Subcontroller.Wheel_Break = 0;
-//     Status->Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
-//     Status->Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
-//     Status->Coordinate_System.Start_Position.W = Computer_Vision_Data.LiDAR.W;
+    Order_To_Subcontroller.Wheel_Break = 0;
+    Status->Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
+    Status->Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
+    Status->Coordinate_System.Start_Position.W = Computer_Vision_Data.LiDAR.W;
 
-//     // 名词解释：线坐标系：以起始点为原点，起始点和目标点连线为X轴的坐标系
-//     // 清pid避免上一段路径的误差积累
-//     PID_Clear(&Line_AdjustPID);
-//     PID_Clear(&Line_StopPID);
-//     PID_Clear(&Line_AnglePID);
-//     Status->Flag.Work_Start = ENABLE;
+    // 名词解释：线坐标系：以起始点为原点，起始点和目标点连线为X轴的坐标系
+    // 清pid避免上一段路径的误差积累
+    PID_Clear(&Line_AdjustPID);
+    PID_Clear(&Line_StopPID);
+    PID_Clear(&Line_AnglePID);
+    Status->Flag.Work_Start = ENABLE;
 
-//     /*===============================================================================================================
-//                                                 动态目标跟踪循环
-//     ===============================================================================================================*/
-//     while (Status->Flag.Work_Start)
-//     {
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 目标点数据滤波和验证
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 为了确保第一个刷上的Target点一定偏差不大，取三次点作差进行滤波
-//         if (Last_Last_Target_Position.X != 0 &&
-//             Last_Last_Target_Position.Y != 0 &&
-//             Last_Target_Position.X != 0 &&
-//             Last_Target_Position.Y != 0 &&
-//             (Now_Target_Position.X - Last_Target_Position.X) < 100 &&
-//             (Now_Target_Position.Y - Last_Target_Position.Y) < 100 &&
-//             (Now_Target_Position.X - Last_Last_Target_Position.X) < 100 &&
-//             (Now_Target_Position.Y - Last_Last_Target_Position.Y) < 100 &&
-//             !Check_Flag)
-//         {
-//             Check_Flag = 1;
-//             // 这个Line_Distance只在开始算一次，用以确定滑动区域参数
-//             Line_Distance = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Now_Target_Position.X, 2) +
-//                                   pow(Computer_Vision_Data.LiDAR.Y - Now_Target_Position.Y, 2));
-//         }
+    /*===============================================================================================================
+                                                动态目标跟踪循环
+    ===============================================================================================================*/
+    while (Status->Flag.Work_Start)
+    {
+        /*---------------------------------------------------------------------------------------------------------------
+                                                目标点数据滤波和验证
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 为了确保第一个刷上的Target点一定偏差不大，取三次点作差进行滤波
+        if (Last_Last_Target_Position.X != 0 &&
+            Last_Last_Target_Position.Y != 0 &&
+            Last_Target_Position.X != 0 &&
+            Last_Target_Position.Y != 0 &&
+            (Now_Target_Position.X - Last_Target_Position.X) < 100 &&
+            (Now_Target_Position.Y - Last_Target_Position.Y) < 100 &&
+            (Now_Target_Position.X - Last_Last_Target_Position.X) < 100 &&
+            (Now_Target_Position.Y - Last_Last_Target_Position.Y) < 100 &&
+            !Check_Flag)
+        {
+            Check_Flag = 1;
+            // 这个Line_Distance只在开始算一次，用以确定滑动区域参数
+            Line_Distance = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Now_Target_Position.X, 2) +
+                                  pow(Computer_Vision_Data.LiDAR.Y - Now_Target_Position.Y, 2));
+        }
 
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 目标点数据更新
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 不断刷这个三个点的数据进行滤波处理
-//         Last_Last_Target_Position = Last_Target_Position;
-//         Last_Target_Position = Now_Target_Position;
-//         // 点的位置信息在这里用全局变量刷新（视觉识别结果）
-//         Now_Target_Position.X = Computer_Vision_Data.Camera.RealSense.X;
-//         Now_Target_Position.Y = Computer_Vision_Data.Camera.RealSense.Y;
+        /*---------------------------------------------------------------------------------------------------------------
+                                                目标点数据更新
+        ---------------------------------------------------------------------------------------------------------------*/
+        // 不断刷这个三个点的数据进行滤波处理
+        Last_Last_Target_Position = Last_Target_Position;
+        Last_Target_Position = Now_Target_Position;
+        // 点的位置信息在这里用全局变量刷新（视觉识别结果）
+        Now_Target_Position.X = Computer_Vision_Data.Camera.RealSense.X;
+        Now_Target_Position.Y = Computer_Vision_Data.Camera.RealSense.Y;
 
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 路径参数动态更新
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         if (Check_Flag)
-//         {
-//             // 检查目标点变化是否在合理范围内，避免突然跳变
-//             if ((Now_Target_Position.X - Status->Coordinate_System.Target_Position.X) < 100 &&
-//                 (Now_Target_Position.Y - Status->Coordinate_System.Target_Position.Y) < 100)
-//             {
-//                 // 由于是变终点路径，所以需要不断刷Target，不断算出新的各个区域长度
-//                 Status->Coordinate_System.Target_Position.X = Computer_Vision_Data.Camera.RealSense.X;
-//                 Status->Coordinate_System.Target_Position.Y = Computer_Vision_Data.Camera.RealSense.Y;
-//                 // 计算绝对目标角度（改为绝对角度系统）
-//                 Status->Coordinate_System.Target_Position.W = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
+        /*---------------------------------------------------------------------------------------------------------------
+                                                路径参数动态更新
+        ---------------------------------------------------------------------------------------------------------------*/
+        if (Check_Flag)
+        {
+            // 检查目标点变化是否在合理范围内，避免突然跳变
+            if ((Now_Target_Position.X - Status->Coordinate_System.Target_Position.X) < 100 &&
+                (Now_Target_Position.Y - Status->Coordinate_System.Target_Position.Y) < 100)
+            {
+                // 由于是变终点路径，所以需要不断刷Target，不断算出新的各个区域长度
+                Status->Coordinate_System.Target_Position.X = Computer_Vision_Data.Camera.RealSense.X;
+                Status->Coordinate_System.Target_Position.Y = Computer_Vision_Data.Camera.RealSense.Y;
+                // 计算绝对目标角度（改为绝对角度系统）
+                Status->Coordinate_System.Target_Position.W = Automatic_Aiming_W_Calculate(Competition_Mode_Shoot_Preliminary, 0, 0);
 
-//                 Status->Parameter.Start_Speed = Start_Speed;
-//                 Status->Parameter.Start_W_Speed = Start_w;
-//                 Status->Parameter.Speedup_W_Rate = 0;
-//                 Status->Parameter.Slow_W_Rate = 0.3;
-//                 Status->Parameter.Angle_Stop_Area = 0.5f;
+                Status->Parameter.Start_Speed = Start_Speed;
+                Status->Parameter.Start_W_Speed = Start_w;
+                Status->Parameter.Speedup_W_Rate = 0;
+                Status->Parameter.Slow_W_Rate = 0.3;
+                Status->Parameter.Angle_Stop_Area = 0.5f;
 
-//                 /*---------------------------------------------------------------------------------------------------
-//                                                 根据距离动态调整速度参数
-//                 ---------------------------------------------------------------------------------------------------*/
-//                 if (Line_Distance > 3000)
-//                 {
-//                     Status->Parameter.Max_Speed = 11000;
-//                     Status->Parameter.End_Speed = 500;
-//                     Status->Parameter.Slow_Rate = 0.5;
-//                     Status->Parameter.Max_W_Speed = 2000;
-//                     Status->Parameter.Speedup_Rate = 0.01;
-//                     Status->Parameter.Line_Route_Stop_Area = 100;
-//                     Status->Parameter.Kp = 15;
-//                     Status->Parameter.Kd = 15;
-//                 }
-//                 else if (Line_Distance > 2000)
-//                 {
-//                     Status->Parameter.Max_Speed = 7000;
-//                     Status->Parameter.End_Speed = 500;
-//                     Status->Parameter.Slow_Rate = 0.5;
-//                     Status->Parameter.Max_W_Speed = 2000;
-//                     Status->Parameter.Speedup_Rate = 0.01;
-//                     Status->Parameter.Line_Route_Stop_Area = 100;
-//                     Status->Parameter.Kp = 15;
-//                     Status->Parameter.Kd = 15;
-//                 }
-//                 else if (Line_Distance > 1000)
-//                 {
-//                     Status->Parameter.Max_Speed = 6000;
-//                     Status->Parameter.End_Speed = 500;
-//                     Status->Parameter.Slow_Rate = 0.4;
-//                     Status->Parameter.Max_W_Speed = 2000;
-//                     Status->Parameter.Speedup_Rate = 0.01;
-//                     Status->Parameter.Line_Route_Stop_Area = 100;
-//                     Status->Parameter.Kp = 15;
-//                     Status->Parameter.Kd = 15;
-//                 }
-//                 else
-//                 {
-//                     Status->Parameter.Max_Speed = 5000;
-//                     Status->Parameter.End_Speed = 800;
-//                     Status->Parameter.Slow_Rate = 0.4;
-//                     Status->Parameter.Max_W_Speed = 2000;
-//                     Status->Parameter.Speedup_Rate = 0.01;
-//                     Status->Parameter.Line_Route_Stop_Area = 100;
-//                     Status->Parameter.Kp = 15;
-//                     Status->Parameter.Kd = 15;
-//                 }
+                /*---------------------------------------------------------------------------------------------------
+                                                根据距离动态调整速度参数
+                ---------------------------------------------------------------------------------------------------*/
+                if (Line_Distance > 3000)
+                {
+                    Status->Parameter.Max_Speed = 11000;
+                    Status->Parameter.End_Speed = 500;
+                    Status->Parameter.Slow_Rate = 0.5;
+                    Status->Parameter.Max_W_Speed = 2000;
+                    Status->Parameter.Speedup_Rate = 0.01;
+                    Status->Parameter.Line_Route_Stop_Area = 100;
+                    Status->Parameter.Kp = 15;
+                    Status->Parameter.Kd = 15;
+                }
+                else if (Line_Distance > 2000)
+                {
+                    Status->Parameter.Max_Speed = 7000;
+                    Status->Parameter.End_Speed = 500;
+                    Status->Parameter.Slow_Rate = 0.5;
+                    Status->Parameter.Max_W_Speed = 2000;
+                    Status->Parameter.Speedup_Rate = 0.01;
+                    Status->Parameter.Line_Route_Stop_Area = 100;
+                    Status->Parameter.Kp = 15;
+                    Status->Parameter.Kd = 15;
+                }
+                else if (Line_Distance > 1000)
+                {
+                    Status->Parameter.Max_Speed = 6000;
+                    Status->Parameter.End_Speed = 500;
+                    Status->Parameter.Slow_Rate = 0.4;
+                    Status->Parameter.Max_W_Speed = 2000;
+                    Status->Parameter.Speedup_Rate = 0.01;
+                    Status->Parameter.Line_Route_Stop_Area = 100;
+                    Status->Parameter.Kp = 15;
+                    Status->Parameter.Kd = 15;
+                }
+                else
+                {
+                    Status->Parameter.Max_Speed = 5000;
+                    Status->Parameter.End_Speed = 800;
+                    Status->Parameter.Slow_Rate = 0.4;
+                    Status->Parameter.Max_W_Speed = 2000;
+                    Status->Parameter.Speedup_Rate = 0.01;
+                    Status->Parameter.Line_Route_Stop_Area = 100;
+                    Status->Parameter.Kp = 15;
+                    Status->Parameter.Kd = 15;
+                }
 
-//                 /*---------------------------------------------------------------------------------------------------
-//                                                 重新计算路径参数（改为绝对角度系统）
-//                 ---------------------------------------------------------------------------------------------------*/
-//                 // 算两点连线与X轴的夹角
-//                 Line_Angle = Calculate_Line_Angle(Status->Coordinate_System.Start_Position, Status->Coordinate_System.Target_Position);
-//                 // 计算线坐标系下的目标位置 ，这个Start_Position是线坐标系下的原点
-//                 Status->Coordinate_System.Line_Target_Position = Position_Coordinate_Transformation(&Status->Coordinate_System.Target_Position, &Status->Coordinate_System.Start_Position, Line_Angle);
-//                 // 此时已经换到线坐标系下，计算到目标点的距离就是X坐标
-//                 Status->Parameter.Distance = Status->Coordinate_System.Line_Target_Position.X;
-//                 // 更新初始角度，当前路径初始角度为上一段路径的目标角度
-//                 Status->Coordinate_System.Start_Position.W = Status->Coordinate_System.Target_Position.W;
+                /*---------------------------------------------------------------------------------------------------
+                                                重新计算路径参数（改为绝对角度系统）
+                ---------------------------------------------------------------------------------------------------*/
+                // 算两点连线与X轴的夹角
+                Line_Angle = Calculate_Line_Angle(Status->Coordinate_System.Start_Position, Status->Coordinate_System.Target_Position);
+                // 计算线坐标系下的目标位置 ，这个Start_Position是线坐标系下的原点
+                Status->Coordinate_System.Line_Target_Position = Position_Coordinate_Transformation(&Status->Coordinate_System.Target_Position, &Status->Coordinate_System.Start_Position, Line_Angle);
+                // 此时已经换到线坐标系下，计算到目标点的距离就是X坐标
+                Status->Parameter.Distance = Status->Coordinate_System.Line_Target_Position.X;
+                // 更新初始角度，当前路径初始角度为上一段路径的目标角度
+                Status->Coordinate_System.Start_Position.W = Status->Coordinate_System.Target_Position.W;
 
-//                 // 计算绝对目标角度，目标角度已经是绝对角度，直接使用（雷达直接回传绝对角度）
-//                 Angle_Aim = Status->Coordinate_System.Target_Position.W;
+                // 计算绝对目标角度，目标角度已经是绝对角度，直接使用（雷达直接回传绝对角度）
+                Angle_Aim = Status->Coordinate_System.Target_Position.W;
 
-//                 // 计算路径加速区和减速区大小 (停止区直接给参数)
-//                 Status->Parameter.Line_Route_Slow_Area = Status->Parameter.Slow_Rate * Status->Parameter.Distance;
-//                 Status->Parameter.Line_Route_Speedup_Area = Status->Parameter.Speedup_Rate * Status->Parameter.Distance;
+                // 计算路径加速区和减速区大小 (停止区直接给参数)
+                Status->Parameter.Line_Route_Slow_Area = Status->Parameter.Slow_Rate * Status->Parameter.Distance;
+                Status->Parameter.Line_Route_Speedup_Area = Status->Parameter.Speedup_Rate * Status->Parameter.Distance;
 
-//                 // 使用安全的角度区间计算，防止极小值和除零问题
-//                 // 计算总的角度变化量（用于区域计算） - 基于绝对角度差值
-//                 Status->Parameter.Total_Angle_Change = Calculate_Absolute_Angle_Distance(
-//                     Status->Coordinate_System.Start_Position.W,
-//                     Status->Coordinate_System.Target_Position.W);
+                // 使用安全的角度区间计算，防止极小值和除零问题
+                // 计算总的角度变化量（用于区域计算） - 基于绝对角度差值
+                // Status->Parameter.Total_Angle_Change = Calculate_Absolute_Angle_Distance(
+                //     Status->Coordinate_System.Start_Position.W,
+                //     Status->Coordinate_System.Target_Position.W);
 
-//                 // 计算角速度的加速区减速区 - 使用安全计算函数
-//                 Status->Parameter.Angle_Slow_Area = Safe_Angle_Area_Calculate(
-//                     Status->Parameter.Total_Angle_Change,
-//                     Status->Parameter.Slow_W_Rate,
-//                     ANGLE_MIN_AREA_PROTECTION);
-//                 Status->Parameter.Angle_Speedup_Area = Safe_Angle_Area_Calculate(
-//                     Status->Parameter.Total_Angle_Change,
-//                     Status->Parameter.Speedup_W_Rate,
-//                     ANGLE_MIN_AREA_PROTECTION);
-//             }
+                // 计算角速度的加速区减速区 - 使用安全计算函数
+                Status->Parameter.Angle_Slow_Area = Safe_Angle_Area_Calculate(
+                    Status->Parameter.Total_Angle_Change,
+                    Status->Parameter.Slow_W_Rate,
+                    ANGLE_MIN_AREA_PROTECTION);
+                Status->Parameter.Angle_Speedup_Area = Safe_Angle_Area_Calculate(
+                    Status->Parameter.Total_Angle_Change,
+                    Status->Parameter.Speedup_W_Rate,
+                    ANGLE_MIN_AREA_PROTECTION);
+            }
 
-//             /*-----------------------------------------------------------------------------------------------------------
-//                                                 坐标系更新（同标准Line函数）
-//             -----------------------------------------------------------------------------------------------------------*/
-//             // 更新世界坐标系下坐标，读雷达回传后处理过的值
-//             World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
-//             World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
-//             World_Coordinate_System_NowPos.W = Computer_Vision_Data.LiDAR.W;
-//             // 这里注释掉了码盘的回传改用雷达的回传
-//             //  World_Coordinate_System_NowPos.X = Disk_Encoder.Cod.Chassis_Position_From_Disk.X;
-//             //  World_Coordinate_System_NowPos.Y = Disk_Encoder.Cod.Chassis_Position_From_Disk.Y;
-//             //  World_Coordinate_System_NowPos.W = Disk_Encoder.Yaw.World_Rotation_Angle;
+            /*-----------------------------------------------------------------------------------------------------------
+                                                坐标系更新（同标准Line函数）
+            -----------------------------------------------------------------------------------------------------------*/
+            // 更新世界坐标系下坐标，读雷达回传后处理过的值
+            World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
+            World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
+            World_Coordinate_System_NowPos.W = Computer_Vision_Data.LiDAR.W;
+            // 这里注释掉了码盘的回传改用雷达的回传
+            //  World_Coordinate_System_NowPos.X = Disk_Encoder.Cod.Chassis_Position_From_Disk.X;
+            //  World_Coordinate_System_NowPos.Y = Disk_Encoder.Cod.Chassis_Position_From_Disk.Y;
+            //  World_Coordinate_System_NowPos.W = Disk_Encoder.Yaw.World_Rotation_Angle;
 
-//             // 更新线坐标系下坐标
-//             Status->Coordinate_System.Line_Now_Position = Position_Coordinate_Transformation(&World_Coordinate_System_NowPos, &Status->Coordinate_System.Start_Position, Line_Angle);
+            // 更新线坐标系下坐标
+            Status->Coordinate_System.Line_Now_Position = Position_Coordinate_Transformation(&World_Coordinate_System_NowPos, &Status->Coordinate_System.Start_Position, Line_Angle);
 
-//             /*===============================================================================================================
-//                                                 角速度计算部分（基于绝对角度）
-//             =====================================================================================================================*/
-//             // 计算角度误差（带方向）- 使用结构体变量便于调试
-//             // 正值表示需要逆时针旋转，负值表示需要顺时针旋转
-//             Status->Parameter.Current_Angle_Error = Calculate_Angle_Difference(Angle_Aim, World_Coordinate_System_NowPos.W);
-//             Status->Parameter.Abs_Angle_Error = fabsf(Status->Parameter.Current_Angle_Error);
+            /*===============================================================================================================
+                                                角速度计算部分（基于绝对角度）
+            =====================================================================================================================*/
+            // 计算角度误差（带方向）- 使用结构体变量便于调试
+            // 正值表示需要逆时针旋转，负值表示需要顺时针旋转
+            // Status->Parameter.Current_Angle_Error = Calculate_Angle_Difference(Angle_Aim, World_Coordinate_System_NowPos.W);
+            Status->Parameter.Abs_Angle_Error = fabsf(Status->Parameter.Current_Angle_Error);
 
-//             // 计算已转过的角度距离 - 使用结构体变量便于调试
-//             // 用于判断当前处于加速区/恒速区/减速区
-//             Status->Parameter.Angle_Distance_Traveled = Calculate_Absolute_Angle_Distance(World_Coordinate_System_NowPos.W, Status->Coordinate_System.Start_Position.W);
+            // 计算已转过的角度距离 - 使用结构体变量便于调试
+            // 用于判断当前处于加速区/恒速区/减速区
+            //Status->Parameter.Angle_Distance_Traveled = Calculate_Absolute_Angle_Distance(World_Coordinate_System_NowPos.W, Status->Coordinate_System.Start_Position.W);
 
-//             // 判断是否需要角度错误标志（修改后的逻辑，基于绝对角度）
-//             // 允许10%的超调，超过则认为角度控制有误
-//             if (Status->Parameter.Angle_Distance_Traveled > (Status->Parameter.Total_Angle_Change * 1.1f))
-//             {
-//                 Status->Flag.W_Error = ENABLE;
-//             }
-//             else
-//             {
-//                 Status->Flag.W_Error = DISABLE;
-//             }
+            // 判断是否需要角度错误标志（修改后的逻辑，基于绝对角度）
+            // 允许10%的超调，超过则认为角度控制有误
+            if (Status->Parameter.Angle_Distance_Traveled > (Status->Parameter.Total_Angle_Change * 1.1f))
+            {
+                Status->Flag.W_Error = ENABLE;
+            }
+            else
+            {
+                Status->Flag.W_Error = DISABLE;
+            }
 
-//             /*---------------------------------------------------------------------------------------------------------------
-//                                                 角速度分区控制逻辑
-//             ---------------------------------------------------------------------------------------------------------------*/
-//             // 停止区 - 修正PID输入，先判断停止区，为了保持平移角度稳定
-//             if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Stop_Area || Status->Flag.W_Error)
-//             {
-//                 // 使用结构体中的角度误差进行PID控制 - 精确角度控制
-//                 PID_Calculate_Positional(&Line_AnglePID, Status->Parameter.Current_Angle_Error, 0);
+            /*---------------------------------------------------------------------------------------------------------------
+                                                角速度分区控制逻辑
+            ---------------------------------------------------------------------------------------------------------------*/
+            // 停止区 - 修正PID输入，先判断停止区，为了保持平移角度稳定
+            if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Stop_Area || Status->Flag.W_Error)
+            {
+                // 使用结构体中的角度误差进行PID控制 - 精确角度控制
+                PID_Calculate_Positional(&Line_AnglePID, Status->Parameter.Current_Angle_Error, 0);
 
-//                 // 添加PID输出限幅，防止角速度过大
-//                 if (Line_AnglePID.Output > 800.0f)
-//                     Line_AnglePID.Output = 800.0f;
-//                 else if (Line_AnglePID.Output < -800.0f)
-//                     Line_AnglePID.Output = -800.0f;
-//                 Status->Coordinate_System.Line_Target_V.Vw = Line_AnglePID.Output;
-//             }
-//             // 加速区 - 使用安全除法进行角速度计算
-//             else if (Status->Parameter.Angle_Distance_Traveled < Status->Parameter.Angle_Speedup_Area)
-//             {
-//                 // 计算加速比例 - 使用安全除法防止除零
-//                 float ratio = Safe_Division(Status->Parameter.Angle_Distance_Traveled, Status->Parameter.Angle_Speedup_Area, ANGLE_MIN_AREA_PROTECTION);
-//                 ratio = Clamp_Float(ratio, 0.0f, 1.0f); // 确保比例在合理范围内
+                // 添加PID输出限幅，防止角速度过大
+                if (Line_AnglePID.Output > 800.0f)
+                    Line_AnglePID.Output = 800.0f;
+                else if (Line_AnglePID.Output < -800.0f)
+                    Line_AnglePID.Output = -800.0f;
+                Status->Coordinate_System.Line_Target_V.Vw = Line_AnglePID.Output;
+            }
+            // 加速区 - 使用安全除法进行角速度计算
+            else if (Status->Parameter.Angle_Distance_Traveled < Status->Parameter.Angle_Speedup_Area)
+            {
+                // 计算加速比例 - 使用安全除法防止除零
+                float ratio = Safe_Division(Status->Parameter.Angle_Distance_Traveled, Status->Parameter.Angle_Speedup_Area, ANGLE_MIN_AREA_PROTECTION);
+                ratio = Clamp_Float(ratio, 0.0f, 1.0f); // 确保比例在合理范围内
 
-//                 // 使用拟合函数计算平滑加速的目标角速度
-//                 float target_w_speed = Status->Parameter.Start_W_Speed +
-//                                        Fitting_Function(ratio) * (Status->Parameter.Max_W_Speed - Status->Parameter.Start_W_Speed);
+                // 使用拟合函数计算平滑加速的目标角速度
+                float target_w_speed = Status->Parameter.Start_W_Speed +
+                                       Fitting_Function(ratio) * (Status->Parameter.Max_W_Speed - Status->Parameter.Start_W_Speed);
 
-//                 // 根据角度误差方向确定速度方向（正误差逆时针，负误差顺时针）
-//                 Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
-//             }
-//             // 恒速区 - 修正恒速区判断条件
-//             else if (Status->Parameter.Angle_Distance_Traveled >= Status->Parameter.Angle_Speedup_Area &&
-//                      Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Slow_Area)
-//             {
-//                 // 根据角度误差方向确定速度方向 - 最大角速度运行
-//                 Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? Status->Parameter.Max_W_Speed : -Status->Parameter.Max_W_Speed;
-//             }
-//             // 减速区 - 接近目标角度时平滑减速
-//             else if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Slow_Area &&
-//                      Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Stop_Area)
-//             {
-//                 // 使用安全除法计算减速比例
-//                 float ratio = Safe_Division(Status->Parameter.Abs_Angle_Error, Status->Parameter.Angle_Slow_Area, ANGLE_MIN_AREA_PROTECTION);
-//                 ratio = Clamp_Float(ratio, 0.0f, 1.0f);
+                // 根据角度误差方向确定速度方向（正误差逆时针，负误差顺时针）
+                Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
+            }
+            // 恒速区 - 修正恒速区判断条件
+            else if (Status->Parameter.Angle_Distance_Traveled >= Status->Parameter.Angle_Speedup_Area &&
+                     Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Slow_Area)
+            {
+                // 根据角度误差方向确定速度方向 - 最大角速度运行
+                Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? Status->Parameter.Max_W_Speed : -Status->Parameter.Max_W_Speed;
+            }
+            // 减速区 - 接近目标角度时平滑减速
+            else if (Status->Parameter.Abs_Angle_Error <= Status->Parameter.Angle_Slow_Area &&
+                     Status->Parameter.Abs_Angle_Error > Status->Parameter.Angle_Stop_Area)
+            {
+                // 使用安全除法计算减速比例
+                float ratio = Safe_Division(Status->Parameter.Abs_Angle_Error, Status->Parameter.Angle_Slow_Area, ANGLE_MIN_AREA_PROTECTION);
+                ratio = Clamp_Float(ratio, 0.0f, 1.0f);
 
-//                 // 使用拟合函数计算平滑减速的目标角速度
-//                 float target_w_speed = Fitting_Function(ratio) * Status->Parameter.Max_W_Speed;
+                // 使用拟合函数计算平滑减速的目标角速度
+                float target_w_speed = Fitting_Function(ratio) * Status->Parameter.Max_W_Speed;
 
-//                 // 根据角度误差方向确定速度方向
-//                 Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
-//             }
+                // 根据角度误差方向确定速度方向
+                Status->Coordinate_System.Line_Target_V.Vw = (Status->Parameter.Current_Angle_Error >= 0) ? target_w_speed : -target_w_speed;
+            }
 
-//             // 添加最终安全限幅 - 防止角速度过大损坏设备
-//             Status->Coordinate_System.Line_Target_V.Vw = Clamp_Float(
-//                 Status->Coordinate_System.Line_Target_V.Vw,
-//                 -VW_MAX_LIMIT,
-//                 VW_MAX_LIMIT);
+            // 添加最终安全限幅 - 防止角速度过大损坏设备
+            Status->Coordinate_System.Line_Target_V.Vw = Clamp_Float(
+                Status->Coordinate_System.Line_Target_V.Vw,
+                -VW_MAX_LIMIT,
+                VW_MAX_LIMIT);
 
-//             /*===============================================================================================================
-//                                                 线速度计算部分（同标准Line函数）
-//             =====================================================================================================================*/
-//             // 加速区内线速度计算 - 路径起始段平滑加速
-//             if ((Status->Coordinate_System.Line_Now_Position.X) < Status->Parameter.Line_Route_Speedup_Area)
-//             {
-//                 Status->Coordinate_System.Line_Target_V.Vx =
-//                     Status->Parameter.Start_Speed +
-//                     Fitting_Function(Status->Coordinate_System.Line_Now_Position.X / Status->Parameter.Line_Route_Speedup_Area) *
-//                         (Status->Parameter.Max_Speed - Status->Parameter.Start_Speed);
-//             }
-//             // 在最大速度区 - 路径中间段匀速运行
-//             else if ((Status->Coordinate_System.Line_Now_Position.X) >= Status->Parameter.Line_Route_Speedup_Area &&
-//                      (Status->Coordinate_System.Line_Now_Position.X) <= (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Slow_Area))
-//             {
-//                 Status->Coordinate_System.Line_Target_V.Vx = Status->Parameter.Max_Speed;
-//             }
-//             // 减速区内线速度计算 - 接近目标点时平滑减速
-//             else if ((Status->Coordinate_System.Line_Now_Position.X) > (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Slow_Area) &&
-//                      (Status->Coordinate_System.Line_Now_Position.X) <= (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area))
-//             {
-//                 Status->Coordinate_System.Line_Target_V.Vx = // 期望速度
-//                     Fitting_Function(((Status->Coordinate_System.Line_Target_Position.X - Status->Coordinate_System.Line_Now_Position.X) / Status->Parameter.Line_Route_Slow_Area)) *
-//                         (Status->Parameter.Max_Speed) +
-//                     Status->Parameter.End_Speed;
-//             }
-//             // 在停止区用PID拉到指定位置 - 精确位置控制
-//             else if ((Status->Coordinate_System.Line_Now_Position.X) > (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area))
-//             {
-//                 // 实现滑动PID控制 - 根据剩余距离动态调整PID参数
-//                 Line_StopPID = Stop_Area_Slide_PID_Calculate(&Line_StopPID, Status->Coordinate_System.Line_Target_Position.X,
-//                                                              Status->Coordinate_System.Line_Now_Position.X,
-//                                                              (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area),
-//                                                              Status->Parameter.Kp, Status->Parameter.Kd);
-//                 PID_Calculate_Positional(&Line_StopPID, Status->Coordinate_System.Line_Now_Position.X, Status->Coordinate_System.Line_Target_Position.X);
-//                 Status->Coordinate_System.Line_Target_V.Vx = Line_StopPID.Output;
-//             }
+            /*===============================================================================================================
+                                                线速度计算部分（同标准Line函数）
+            =====================================================================================================================*/
+            // 加速区内线速度计算 - 路径起始段平滑加速
+            if ((Status->Coordinate_System.Line_Now_Position.X) < Status->Parameter.Line_Route_Speedup_Area)
+            {
+                Status->Coordinate_System.Line_Target_V.Vx =
+                    Status->Parameter.Start_Speed +
+                    Fitting_Function(Status->Coordinate_System.Line_Now_Position.X / Status->Parameter.Line_Route_Speedup_Area) *
+                        (Status->Parameter.Max_Speed - Status->Parameter.Start_Speed);
+            }
+            // 在最大速度区 - 路径中间段匀速运行
+            else if ((Status->Coordinate_System.Line_Now_Position.X) >= Status->Parameter.Line_Route_Speedup_Area &&
+                     (Status->Coordinate_System.Line_Now_Position.X) <= (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Slow_Area))
+            {
+                Status->Coordinate_System.Line_Target_V.Vx = Status->Parameter.Max_Speed;
+            }
+            // 减速区内线速度计算 - 接近目标点时平滑减速
+            else if ((Status->Coordinate_System.Line_Now_Position.X) > (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Slow_Area) &&
+                     (Status->Coordinate_System.Line_Now_Position.X) <= (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area))
+            {
+                Status->Coordinate_System.Line_Target_V.Vx = // 期望速度
+                    Fitting_Function(((Status->Coordinate_System.Line_Target_Position.X - Status->Coordinate_System.Line_Now_Position.X) / Status->Parameter.Line_Route_Slow_Area)) *
+                        (Status->Parameter.Max_Speed) +
+                    Status->Parameter.End_Speed;
+            }
+            // 在停止区用PID拉到指定位置 - 精确位置控制
+            else if ((Status->Coordinate_System.Line_Now_Position.X) > (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area))
+            {
+                // 实现滑动PID控制 - 根据剩余距离动态调整PID参数
+                Line_StopPID = Stop_Area_Slide_PID_Calculate(&Line_StopPID, Status->Coordinate_System.Line_Target_Position.X,
+                                                             Status->Coordinate_System.Line_Now_Position.X,
+                                                             (Status->Coordinate_System.Line_Target_Position.X - Status->Parameter.Line_Route_Stop_Area),
+                                                             Status->Parameter.Kp, Status->Parameter.Kd);
+                PID_Calculate_Positional(&Line_StopPID, Status->Coordinate_System.Line_Now_Position.X, Status->Coordinate_System.Line_Target_Position.X);
+                Status->Coordinate_System.Line_Target_V.Vx = Line_StopPID.Output;
+            }
 
-//             /*---------------------------------------------------------------------------------------------------------------
-//                                                 法向速度控制（保持直线）
-//             ---------------------------------------------------------------------------------------------------------------*/
-//             // 法向保持直线 - 修正路径偏移
-//             if (ABS(Status->Coordinate_System.Line_Now_Position.X - Status->Coordinate_System.Line_Target_Position.X) > 5) // 快到直线结尾时不调节法向速度，避免出现轮子抖动
-//             {
-//                 if (ABS(Status->Coordinate_System.Line_Now_Position.Y - Status->Coordinate_System.Line_Target_Position.Y) > 3)
-//                 {
-//                     PID_Calculate_Positional(&Line_AdjustPID, Status->Coordinate_System.Line_Now_Position.Y, 0);
-//                     // 前馈调节，差太多的话给一个大力拽回来
-//                     if (ABS(Status->Coordinate_System.Line_Now_Position.Y - Status->Coordinate_System.Line_Target_Position.Y) > 1.5f)
-//                     {
-//                         if (Line_AdjustPID.Output > 0)
-//                             Line_AdjustPID.Output += 3;
-//                         else if (Line_AdjustPID.Output < 0)
-//                             Line_AdjustPID.Output -= 3;
-//                     }
-//                     Status->Coordinate_System.Line_Target_V.Vy = Line_AdjustPID.Output;
-//                 }
-//             }
-//             else
-//                 Status->Coordinate_System.Line_Target_V.Vy = 0;
+            /*---------------------------------------------------------------------------------------------------------------
+                                                法向速度控制（保持直线）
+            ---------------------------------------------------------------------------------------------------------------*/
+            // 法向保持直线 - 修正路径偏移
+            if (ABS(Status->Coordinate_System.Line_Now_Position.X - Status->Coordinate_System.Line_Target_Position.X) > 5) // 快到直线结尾时不调节法向速度，避免出现轮子抖动
+            {
+                if (ABS(Status->Coordinate_System.Line_Now_Position.Y - Status->Coordinate_System.Line_Target_Position.Y) > 3)
+                {
+                    PID_Calculate_Positional(&Line_AdjustPID, Status->Coordinate_System.Line_Now_Position.Y, 0);
+                    // 前馈调节，差太多的话给一个大力拽回来
+                    if (ABS(Status->Coordinate_System.Line_Now_Position.Y - Status->Coordinate_System.Line_Target_Position.Y) > 1.5f)
+                    {
+                        if (Line_AdjustPID.Output > 0)
+                            Line_AdjustPID.Output += 3;
+                        else if (Line_AdjustPID.Output < 0)
+                            Line_AdjustPID.Output -= 3;
+                    }
+                    Status->Coordinate_System.Line_Target_V.Vy = Line_AdjustPID.Output;
+                }
+            }
+            else
+                Status->Coordinate_System.Line_Target_V.Vy = 0;
 
-//             /*===============================================================================================================
-//                                                 坐标系转换部分
-//             ===============================================================================================================*/
-//             // 将线坐标系下的速度转换成世界坐标系下速度
-//             Status->Coordinate_System.World_Coordinate_System_Target_V = Speed_Coordinate_Transformation(&Status->Coordinate_System.Line_Target_V, &Status->Coordinate_System.Zero_Speed, -Line_Angle);
-//             // 将世界坐标系下速度转换成车身坐标系下速度
-//             Status->Coordinate_System.Robot_Coordinate_System_V = Speed_Coordinate_Transformation(&Status->Coordinate_System.World_Coordinate_System_Target_V, &Status->Coordinate_System.Zero_Speed, Computer_Vision_Data.LiDAR.W);
+            /*===============================================================================================================
+                                                坐标系转换部分
+            ===============================================================================================================*/
+            // 将线坐标系下的速度转换成世界坐标系下速度
+            Status->Coordinate_System.World_Coordinate_System_Target_V = Speed_Coordinate_Transformation(&Status->Coordinate_System.Line_Target_V, &Status->Coordinate_System.Zero_Speed, -Line_Angle);
+            // 将世界坐标系下速度转换成车身坐标系下速度
+            Status->Coordinate_System.Robot_Coordinate_System_V = Speed_Coordinate_Transformation(&Status->Coordinate_System.World_Coordinate_System_Target_V, &Status->Coordinate_System.Zero_Speed, Computer_Vision_Data.LiDAR.W);
 
-//             /*===============================================================================================================
-//                                                 路径完成判断部分（适配动态目标）
-//             ===============================================================================================================*/
-//             // 判断路径是否走完
-//             // 这里死区由3改为5，原因是雷达本身有数字跳变，为最大限度防止路径卡死
-//             // 同时判断位置误差、角度误差和电机转速，确保真正停稳
-//             if (Status->Coordinate_System.Line_Target_Position.X - Status->Coordinate_System.Line_Now_Position.X < 10 &&
-//                     Status->Parameter.Abs_Angle_Error < 3 &&
-//                     VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller < 100 &&
-//                     VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller < 100 &&
-//                     VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller < 100 &&
-//                     VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller < 100 ||
-//                 Teaching_Pendant_Data.Death == 1)
-//             {
-//                 Status->Flag.Work_Start = DISABLE;
-//                 Status->Coordinate_System.Line_Target_V.Vx = 0;
-//                 Status->Coordinate_System.Line_Target_V.Vy = 0;
-//                 Status->Coordinate_System.Line_Target_V.Vw = 0;
-//                 Order_To_Subcontroller.Wheel_Break = 1; // 停止指令
-//             }
+            /*===============================================================================================================
+                                                路径完成判断部分（适配动态目标）
+            ===============================================================================================================*/
+            // 判断路径是否走完
+            // 这里死区由3改为5，原因是雷达本身有数字跳变，为最大限度防止路径卡死
+            // 同时判断位置误差、角度误差和电机转速，确保真正停稳
+            if (Status->Coordinate_System.Line_Target_Position.X - Status->Coordinate_System.Line_Now_Position.X < 10 &&
+                    Status->Parameter.Abs_Angle_Error < 3 &&
+                    VESC_Data_From_Subcontroller[0].RPM_From_Subcontroller < 100 &&
+                    VESC_Data_From_Subcontroller[1].RPM_From_Subcontroller < 100 &&
+                    VESC_Data_From_Subcontroller[2].RPM_From_Subcontroller < 100 &&
+                    VESC_Data_From_Subcontroller[3].RPM_From_Subcontroller < 100 ||
+                Teaching_Pendant_Data.Death == 1)
+            {
+                Status->Flag.Work_Start = DISABLE;
+                Status->Coordinate_System.Line_Target_V.Vx = 0;
+                Status->Coordinate_System.Line_Target_V.Vy = 0;
+                Status->Coordinate_System.Line_Target_V.Vw = 0;
+                Order_To_Subcontroller.Wheel_Break = 1; // 停止指令
+            }
 
-//             /*===============================================================================================================
-//                                                     紧急退出处理
-//             ===============================================================================================================*/
-//             if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
-//             {
-//                 // 如果手柄上按下了复位键，直接跳出路径，用于球掉的情况
-//                 // 这里没有将路径Disable为了不让轮子锁死，加快Reset时间
-//                 break;
-//             }
-//         }
-//         osDelay(2);
-//     }
-// }
+            /*===============================================================================================================
+                                                    紧急退出处理
+            ===============================================================================================================*/
+            if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
+            {
+                // 如果手柄上按下了复位键，直接跳出路径，用于球掉的情况
+                // 这里没有将路径Disable为了不让轮子锁死，加快Reset时间
+                break;
+            }
+        }
+        osDelay(2);
+    }
+}
 
-// Coordinate_Position_Struct Fix_Point_For_Shoot; // 定点一直投的定点，这个点选择在三分线之外
+Coordinate_Position_Struct Fix_Point_For_Shoot; // 定点一直投的定点，这个点选择在三分线之外
 extern uint8_t Reload_Flag;               // 换弹标志位，置为1时执行换弹
 extern uint8_t Finish_Fire_Flag;          // 投球完成标志位，置为1时表示投球完成
 extern uint8_t Adjusting_Fire_Angle_Flag; // 微调发射丝杠位置标志位，置为1时微调发射丝杠位置
-// uint8_t Shoot_Point_Count = 0;
+uint8_t Shoot_Point_Count = 0;
 float A1_Remember_Pos = 0; // 在最后定点的时候记住操作手微调的位置
 /*********************************************************************************
  * @name 	Judge_Fix_Point
  * @brief   存最合适定点投篮的点，在每次发射前调用一下即可(时代的眼泪了，原来队长想使用视觉回传数据来完成预选赛，减重把视觉减掉了)
  * @details 存点逻辑是先判是否在三分线之外，再判离中轴线的距离
  *********************************************************************************/
-// void Judge_Fix_Point(void)
-// {
-//     // 这个是算当前点到篮框的距离，如果大于3125mm则认为是三分线外
-//     float Distance = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Pre_Basket_Position.X, 2) +
-//                            pow(Computer_Vision_Data.LiDAR.Y - Pre_Basket_Position.Y, 2));
-//     // 当前点离中轴线的距离
-//     float Distance2 = fabsf(Computer_Vision_Data.LiDAR.X - Pre_Basket_Position.X);
-//     // 预设点离中轴线的距离
-//     float Distance3 = fabsf(Fix_Point_For_Shoot.X - Pre_Basket_Position.X);
-//     if (Distance > 3125)
-//     {
-//         // 当前点距离中轴线更近就刷当前点
-//         if (Distance2 < Distance3)
-//         {
-//             Fix_Point_For_Shoot.X = Computer_Vision_Data.LiDAR.X;
-//             Fix_Point_For_Shoot.Y = Computer_Vision_Data.LiDAR.Y;
-//             Fix_Point_For_Shoot.W = Computer_Vision_Data.LiDAR.W;
-//         }
-//     }
-// }
+void Judge_Fix_Point(void)
+{
+    // 这个是算当前点到篮框的距离，如果大于3125mm则认为是三分线外
+    float Distance = sqrtf(pow(Computer_Vision_Data.LiDAR.X - Pre_Basket_Position.X, 2) +
+                           pow(Computer_Vision_Data.LiDAR.Y - Pre_Basket_Position.Y, 2));
+    // 当前点离中轴线的距离
+    float Distance2 = fabsf(Computer_Vision_Data.LiDAR.X - Pre_Basket_Position.X);
+    // 预设点离中轴线的距离
+    float Distance3 = fabsf(Fix_Point_For_Shoot.X - Pre_Basket_Position.X);
+    if (Distance > 3125)
+    {
+        // 当前点距离中轴线更近就刷当前点
+        if (Distance2 < Distance3)
+        {
+            Fix_Point_For_Shoot.X = Computer_Vision_Data.LiDAR.X;
+            Fix_Point_For_Shoot.Y = Computer_Vision_Data.LiDAR.Y;
+            Fix_Point_For_Shoot.W = Computer_Vision_Data.LiDAR.W;
+        }
+    }
+}
 /*********************************************************************************
  * @name 	Shoot_Pre_Competition
  * @brief   投球预选赛函数，调用即可全自动跑完(时代的眼泪了，原来队长想使用视觉回传数据来完成预选赛，减重把视觉减掉了)
@@ -2097,223 +2097,6 @@ void Shoot_Pre_Competition(void)
  *          2. X方向位置控制和角度控制
  *          3. 速度限幅和停止判断
  *********************************************************************************/
-// void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
-// {
-//     // PID_Struct Keep_X_PID;
-//     //  初始化路径状态
-//     Order_To_Subcontroller.Wheel_Break = 0;
-//     Order_To_Subcontroller.Wheel_Lock = 0;
-
-//     // 设置起始位置为当前位置
-//     Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
-//     Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
-//     Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
-
-//     // 设置目标位置
-//     Route_Status.Coordinate_System.Target_Position.X = Target_X;
-//     Route_Status.Coordinate_System.Target_Position.Y = Target_Y;
-//     Route_Status.Coordinate_System.Target_Position.W = Safe_Angle_Normalization(Target_W);
-
-//     // 启动工作标志
-//     Route_Status.Flag.Work_Start = ENABLE;
-
-//     // 清除PID误差
-//     PID_Clear(&Keep_X_PID);
-//     PID_Clear(&Keep_Y_PID);
-//     PID_Clear(&Keep_W_PID);
-
-//     /*===================================================================================================================
-//                                                 位置保持控制循环
-//     =====================================================================================================================*/
-//     while (Route_Status.Flag.Work_Start)
-//     {
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 坐标系更新
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 更新当前世界坐标
-//         World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
-//         World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
-//         World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
-
-//         // 更新起始位置（实时更新，便于小幅调整）
-//         Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
-//         Route_Status.Coordinate_System.Start_Position.Y = World_Coordinate_System_NowPos.Y;
-//         Route_Status.Coordinate_System.Start_Position.W = World_Coordinate_System_NowPos.W;
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 坐标系转换
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 计算线坐标系角度
-//         Line_Angle = Calculate_Line_Angle(Route_Status.Coordinate_System.Start_Position,
-//                                           Route_Status.Coordinate_System.Target_Position);
-
-//         // 转换到线坐标系
-//         Route_Status.Coordinate_System.Line_Target_Position =
-//             Position_Coordinate_Transformation(&Route_Status.Coordinate_System.Target_Position,
-//                                                &Route_Status.Coordinate_System.Start_Position,
-//                                                Line_Angle);
-
-//         Route_Status.Coordinate_System.Line_Now_Position =
-//             Position_Coordinate_Transformation(&World_Coordinate_System_NowPos,
-//                                                &Route_Status.Coordinate_System.Start_Position,
-//                                                Line_Angle);
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 X方向位置控制
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         float X_remain = Safe_fabs(Route_Status.Coordinate_System.Line_Target_Position.X -
-//                                    Route_Status.Coordinate_System.Line_Now_Position.X);
-
-//         if (X_remain > 5.0f)
-//         {
-//             if (X_remain >= 200.0f)
-//             {
-//                 // 大距离时动态调整PID参数
-//                 float dynamic_kp = X_remain / 10.0f;
-//                 // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
-
-//                 Keep_X_PID.Kp = dynamic_kp;
-//                 Keep_X_PID.Ki = 0.0f;
-//                 Keep_X_PID.Kd = 0.0f;
-//                 Keep_X_PID.Forward = 2000.0f; // 前馈补偿
-
-//                 // 使用缩放后的位置进行PID计算
-//                 float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
-//                 float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 10.0f;
-
-//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
-
-//                 // 限制输出速度
-//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
-//             }
-//             else // X_remain < 200
-//             {
-//                 // 小距离时使用固定PID参数
-//                 Keep_X_PID.Kp = 12.0f;
-//                 Keep_X_PID.Ki = 0.0f;
-//                 Keep_X_PID.Kd = 0.0f;
-//                 Keep_X_PID.Forward = 0.0f; // 前馈补偿
-
-//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
-//                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
-//                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
-
-//                 // 限制输出速度
-//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -2500.0f, 2500.0f);
-
-//                 // 添加前馈补偿（根据原代码逻辑）
-//                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
-//                 // {
-//                 //     Keep_X_PID.Output += 100.0f;
-//                 // }
-//                 // else if (Keep_X_PID.Output < 0 && Keep_X_PID.Output > -900.0f)
-//                 // {
-//                 //     Keep_X_PID.Output -= 100.0f;
-//                 // }
-
-//             }
-
-//             // if (ABS(Keep_X_PID.Output) < 600.0f)
-//             // {
-//             //     Keep_X_PID.Output = 0.0f;
-//             // }
-
-//             // Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
-//                         Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
-//         }
-//         else
-//         {
-//             Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
-//         }
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 Y方向位置控制（保持为0）
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         Route_Status.Coordinate_System.Line_Target_V.Vy = 0.0f;
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 角度控制
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 使用改进的角度误差计算
-//         float angle_error = Calculate_Angle_Error_With_Direction(
-//             Route_Status.Coordinate_System.Target_Position.W,
-//             World_Coordinate_System_NowPos.W);
-
-//         float angle_remain = Safe_fabs(angle_error);
-
-//         if (angle_remain > 0.5f)
-//         {
-//             Keep_W_PID.Kp = 100.0f;
-//             Keep_W_PID.Ki = 0.0f;
-//             Keep_W_PID.Kd = 0.0f;
-//             Keep_X_PID.Forward = 1000.0f; // 前馈补偿
-
-//             PID_Calculate_Positional_With_Forward(&Keep_W_PID,  World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
-
-//             // 限制角速度输出
-
-//             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
-
-//             // if( ABS(Keep_W_PID.Output) > 900)
-//             // {
-//             // Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
-//             // }else{
-//             //     Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // 如果角速度小于500则不转
-//             // }
-
-//             Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
-
-//         }
-//         else
-//         {
-//             Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f;
-//         }
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 坐标系转换到机器人坐标系
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 将线坐标系速度转换为世界坐标系速度
-//         Route_Status.Coordinate_System.World_Coordinate_System_Target_V =
-//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.Line_Target_V,
-//                                             &Route_Status.Coordinate_System.Zero_Speed,
-//                                             -Line_Angle);
-
-//         // 将世界坐标系速度转换为机器人坐标系速度
-//         Route_Status.Coordinate_System.Robot_Coordinate_System_V =
-//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.World_Coordinate_System_Target_V,
-//                                             &Route_Status.Coordinate_System.Zero_Speed,
-//                                             World_Coordinate_System_NowPos.W);
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 停止判断
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // 当X方向误差小于阈值时停止
-//         if (angle_remain <= 0.5f)
-//         {
-//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
-//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
-//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0.0f;
-
-//             Order_To_Subcontroller.Wheel_Lock = 1; // 刹车
-//             Route_Status.Flag.Work_Start = DISABLE;
-//         }
-
-//         /*---------------------------------------------------------------------------------------------------------------
-//                                                 紧急退出处理
-//         ---------------------------------------------------------------------------------------------------------------*/
-//         // if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
-//         // {
-//         //     // 紧急停止
-//         //     Route_Status.Flag.Work_Start = DISABLE;
-//         //     Order_To_Subcontroller.Wheel_Break = 1;
-//         //     break;
-//         // }
-
-//         osDelay(2); // RTOS任务调度延时
-//     }
-// }
-
-// 这套参数Limit_Speed取12500
 void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
 {
     // PID_Struct Keep_X_PID;
@@ -2322,9 +2105,9 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
     Order_To_Subcontroller.Wheel_Lock = 0;
 
     // 设置起始位置为当前位置
-    Route_Status.Coordinate_System.Start_Position.X = Final_Now_Pos.X;
-    Route_Status.Coordinate_System.Start_Position.Y = Final_Now_Pos.Y;
-    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Final_Now_Pos.W);
+    Route_Status.Coordinate_System.Start_Position.X = Computer_Vision_Data.LiDAR.X;
+    Route_Status.Coordinate_System.Start_Position.Y = Computer_Vision_Data.LiDAR.Y;
+    Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
 
     // 设置目标位置
     Route_Status.Coordinate_System.Target_Position.X = Target_X;
@@ -2348,9 +2131,9 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 坐标系更新
         ---------------------------------------------------------------------------------------------------------------*/
         // 更新当前世界坐标
-        World_Coordinate_System_NowPos.X = Final_Now_Pos.X;
-        World_Coordinate_System_NowPos.Y = Final_Now_Pos.Y;
-        World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Final_Now_Pos.W);
+        World_Coordinate_System_NowPos.X = Computer_Vision_Data.LiDAR.X;
+        World_Coordinate_System_NowPos.Y = Computer_Vision_Data.LiDAR.Y;
+        World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Computer_Vision_Data.LiDAR.W);
 
         // 更新起始位置（实时更新，便于小幅调整）
         Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
@@ -2386,17 +2169,17 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             if (X_remain >= 200.0f)
             {
                 // 大距离时动态调整PID参数
-                float dynamic_kp = X_remain / 15.0f;
+                float dynamic_kp = X_remain / 10.0f;
                 // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
 
                 Keep_X_PID.Kp = dynamic_kp;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 4500.0f; // 前馈补偿
+                Keep_X_PID.Forward = 2000.0f; // 前馈补偿
 
                 // 使用缩放后的位置进行PID计算
-                float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 15.0f;
-                float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 15.0f;
+                float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 10.0f;
+                float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 10.0f;
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
 
@@ -2406,17 +2189,17 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             else // X_remain < 200
             {
                 // 小距离时使用固定PID参数
-                Keep_X_PID.Kp = 15.0f;
+                Keep_X_PID.Kp = 12.0f;
                 Keep_X_PID.Ki = 0.0f;
                 Keep_X_PID.Kd = 0.0f;
-                Keep_X_PID.Forward = 1200.0f; // 前馈补偿
+                Keep_X_PID.Forward = 0.0f; // 前馈补偿
 
                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
 
                 // 限制输出速度
-                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -5000.0f, 5000.0f);
+                Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -2500.0f, 2500.0f);
 
                 // 添加前馈补偿（根据原代码逻辑）
                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
@@ -2427,6 +2210,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                 // {
                 //     Keep_X_PID.Output -= 100.0f;
                 // }
+
             }
 
             // if (ABS(Keep_X_PID.Output) < 600.0f)
@@ -2434,7 +2218,8 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             //     Keep_X_PID.Output = 0.0f;
             // }
 
-            Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+            // Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+                        Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
         }
         else
         {
@@ -2463,13 +2248,21 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
             Keep_W_PID.Kd = 0.0f;
             Keep_X_PID.Forward = 1000.0f; // 前馈补偿
 
-            PID_Calculate_Positional_With_Forward(&Keep_W_PID, World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
+            PID_Calculate_Positional_With_Forward(&Keep_W_PID,  World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
 
             // 限制角速度输出
+
             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
 
+            // if( ABS(Keep_W_PID.Output) > 900)
+            // {
+            // Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
+            // }else{
+            //     Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f; // 如果角速度小于500则不转
+            // }
+
             Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
-            ; // Keep_W_PID.Output;
+
         }
         else
         {
@@ -2495,7 +2288,7 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
                                                 停止判断
         ---------------------------------------------------------------------------------------------------------------*/
         // 当X方向误差小于阈值时停止
-        if (X_remain <= 20.0f && angle_remain <= 0.5f) //&& angle_remain <= 1.0f)
+        if (angle_remain <= 0.5f)
         {
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
@@ -2519,6 +2312,217 @@ void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float L
         osDelay(2); // RTOS任务调度延时
     }
 }
+
+// 这套参数Limit_Speed取12500
+// void Keep_Position_Speed(float Target_X, float Target_Y, float Target_W, float Limit_Speed)
+// {
+//     // PID_Struct Keep_X_PID;
+//     //  初始化路径状态
+//     Order_To_Subcontroller.Wheel_Break = 0;
+//     Order_To_Subcontroller.Wheel_Lock = 0;
+
+//     // 设置起始位置为当前位置
+//     Route_Status.Coordinate_System.Start_Position.X = Final_Now_Pos.X;
+//     Route_Status.Coordinate_System.Start_Position.Y = Final_Now_Pos.Y;
+//     Route_Status.Coordinate_System.Start_Position.W = Safe_Angle_Normalization(Final_Now_Pos.W);
+
+//     // 设置目标位置
+//     Route_Status.Coordinate_System.Target_Position.X = Target_X;
+//     Route_Status.Coordinate_System.Target_Position.Y = Target_Y;
+//     Route_Status.Coordinate_System.Target_Position.W = Safe_Angle_Normalization(Target_W);
+
+//     // 启动工作标志
+//     Route_Status.Flag.Work_Start = ENABLE;
+
+//     // 清除PID误差
+//     PID_Clear(&Keep_X_PID);
+//     PID_Clear(&Keep_Y_PID);
+//     PID_Clear(&Keep_W_PID);
+
+//     /*===================================================================================================================
+//                                                 位置保持控制循环
+//     =====================================================================================================================*/
+//     while (Route_Status.Flag.Work_Start)
+//     {
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系更新
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 更新当前世界坐标
+//         World_Coordinate_System_NowPos.X = Final_Now_Pos.X;
+//         World_Coordinate_System_NowPos.Y = Final_Now_Pos.Y;
+//         World_Coordinate_System_NowPos.W = Safe_Angle_Normalization(Final_Now_Pos.W);
+
+//         // 更新起始位置（实时更新，便于小幅调整）
+//         Route_Status.Coordinate_System.Start_Position.X = World_Coordinate_System_NowPos.X;
+//         Route_Status.Coordinate_System.Start_Position.Y = World_Coordinate_System_NowPos.Y;
+//         Route_Status.Coordinate_System.Start_Position.W = World_Coordinate_System_NowPos.W;
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系转换
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 计算线坐标系角度
+//         Line_Angle = Calculate_Line_Angle(Route_Status.Coordinate_System.Start_Position,
+//                                           Route_Status.Coordinate_System.Target_Position);
+
+//         // 转换到线坐标系
+//         Route_Status.Coordinate_System.Line_Target_Position =
+//             Position_Coordinate_Transformation(&Route_Status.Coordinate_System.Target_Position,
+//                                                &Route_Status.Coordinate_System.Start_Position,
+//                                                Line_Angle);
+
+//         Route_Status.Coordinate_System.Line_Now_Position =
+//             Position_Coordinate_Transformation(&World_Coordinate_System_NowPos,
+//                                                &Route_Status.Coordinate_System.Start_Position,
+//                                                Line_Angle);
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 X方向位置控制
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         float X_remain = Safe_fabs(Route_Status.Coordinate_System.Line_Target_Position.X -
+//                                    Route_Status.Coordinate_System.Line_Now_Position.X);
+
+//         if (X_remain > 50.0f)
+//         {
+//             if (X_remain >= 200.0f)
+//             {
+//                 // 大距离时动态调整PID参数
+//                 float dynamic_kp = X_remain / 10.0f;
+//                 // dynamic_kp = Clamp_Float(dynamic_kp, 5.0f, 200.0f); // 限制Kp范围
+
+//                 Keep_X_PID.Kp = dynamic_kp;
+//                 Keep_X_PID.Ki = 0.0f;
+//                 Keep_X_PID.Kd = 0.0f;
+//                 Keep_X_PID.Forward = 4500.0f; // 前馈补偿
+
+//                 // 使用缩放后的位置进行PID计算
+//                 float scaled_current = Route_Status.Coordinate_System.Line_Now_Position.X / 20.0f;
+//                 float scaled_target = Route_Status.Coordinate_System.Line_Target_Position.X / 20.0f;
+
+//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID, scaled_current, scaled_target);
+
+//                 // 限制输出速度
+//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -Limit_Speed, Limit_Speed);
+//             }
+//             else // X_remain < 200
+//             {
+//                 // 小距离时使用固定PID参数
+//                 Keep_X_PID.Kp = 20.0f;
+//                 Keep_X_PID.Ki = 0.0f;
+//                 Keep_X_PID.Kd = 0.0f;
+//                 Keep_X_PID.Forward = 1000.0f; // 前馈补偿
+
+//                 PID_Calculate_Positional_With_Forward(&Keep_X_PID,
+//                                                       Route_Status.Coordinate_System.Line_Now_Position.X,
+//                                                       Route_Status.Coordinate_System.Line_Target_Position.X);
+
+//                 // 限制输出速度
+//                 Keep_X_PID.Output = Clamp_Float(Keep_X_PID.Output, -4500.0f, 4500.0f);
+
+//                 // 添加前馈补偿（根据原代码逻辑）
+//                 // if (Keep_X_PID.Output > 0 && Keep_X_PID.Output < 900.0f)
+//                 // {
+//                 //     Keep_X_PID.Output += 100.0f;
+//                 // }
+//                 // else if (Keep_X_PID.Output < 0 && Keep_X_PID.Output > -900.0f)
+//                 // {
+//                 //     Keep_X_PID.Output -= 100.0f;
+//                 // }
+//             }
+
+//             // if (ABS(Keep_X_PID.Output) < 600.0f)
+//             // {
+//             //     Keep_X_PID.Output = 0.0f;
+//             // }
+
+//             Route_Status.Coordinate_System.Line_Target_V.Vx = Keep_X_PID.Output;
+//         }
+//         else
+//         {
+//             Route_Status.Coordinate_System.Line_Target_V.Vx = 0.0f;
+//         }
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 Y方向位置控制（保持为0）
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         Route_Status.Coordinate_System.Line_Target_V.Vy = 0.0f;
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 角度控制
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 使用改进的角度误差计算
+//         float angle_error = Calculate_Angle_Error_With_Direction(
+//             Route_Status.Coordinate_System.Target_Position.W,
+//             World_Coordinate_System_NowPos.W);
+
+//         float angle_remain = Safe_fabs(angle_error);
+
+//         if (angle_remain > 0.5f)
+//         {
+//             Keep_W_PID.Kp = 100.0f;
+//             Keep_W_PID.Ki = 0.0f;
+//             Keep_W_PID.Kd = 0.0f;
+//             Keep_W_PID.Forward = 20.0f; // 前馈补偿
+
+//             PID_Calculate_Positional_With_Forward(&Keep_W_PID, World_Coordinate_System_NowPos.W, Route_Status.Coordinate_System.Target_Position.W);
+
+//             // 限制角速度输出
+//             Keep_W_PID.Output = Clamp_Float(Keep_W_PID.Output, -5000.0f, 5000.0f);
+
+//             Route_Status.Coordinate_System.Line_Target_V.Vw = Keep_W_PID.Output;
+//             ; // Keep_W_PID.Output;
+//         }
+//         else
+//         {
+//             Route_Status.Coordinate_System.Line_Target_V.Vw = 0.0f;
+//         }
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 坐标系转换到机器人坐标系
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 将线坐标系速度转换为世界坐标系速度
+//         Route_Status.Coordinate_System.World_Coordinate_System_Target_V =
+//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.Line_Target_V,
+//                                             &Route_Status.Coordinate_System.Zero_Speed,
+//                                             -Line_Angle);
+
+//         // 将世界坐标系速度转换为机器人坐标系速度
+//         Route_Status.Coordinate_System.Robot_Coordinate_System_V =
+//             Speed_Coordinate_Transformation(&Route_Status.Coordinate_System.World_Coordinate_System_Target_V,
+//                                             &Route_Status.Coordinate_System.Zero_Speed,
+//                                             World_Coordinate_System_NowPos.W);
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 停止判断
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // 当X方向误差小于阈值时停止
+//         if ( X_remain <= 50.0f && angle_remain <= 0.5f)
+//         {
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vx = 0.0f;
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vy = 0.0f;
+//             Route_Status.Coordinate_System.Robot_Coordinate_System_V.Vw = 0.0f;
+
+//             Order_To_Subcontroller.Wheel_Break = 1; // 刹车
+//             Route_Status.Flag.Work_Start = DISABLE;
+//         }
+// 				else
+// 				{
+// 					Order_To_Subcontroller.Wheel_Break = 0;
+// 				}
+
+//         /*---------------------------------------------------------------------------------------------------------------
+//                                                 紧急退出处理
+//         ---------------------------------------------------------------------------------------------------------------*/
+//         // if (Teaching_Pendant_Data.Death == -1 && Teaching_Pendant.Death == -1)
+//         // {
+//         //     // 紧急停止
+//         //     Route_Status.Flag.Work_Start = DISABLE;
+//         //     Order_To_Subcontroller.Wheel_Break = 1;
+//         //     break;
+//         // }
+
+//         osDelay(2); // RTOS任务调度延时
+//     }
+// }
 
 /*********************************************************************************
  * @name    Dribble_Pre_Check_Near_Reset_Points_And_Go

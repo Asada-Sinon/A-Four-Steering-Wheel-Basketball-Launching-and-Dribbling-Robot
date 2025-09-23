@@ -201,14 +201,12 @@ void A1Motor_Restart(void)
  * @param hdma_rx: DMA句柄
  * @return 解析后的电机反馈数据
  */
+A1MotorFeedback feedback = {0};
 A1MotorFeedback A1Motor_ProcessFeedback(UART_HandleTypeDef *huart,
                                         DMA_HandleTypeDef *hdma_rx)
 {
-    A1MotorFeedback feedback = {0};
-
     // 停止DMA接收
     HAL_UART_DMAStop(huart);
-
     // 检查并解析数据
     if (A1_Rec_Data[0] == A1_PACKET_HEADER_0 &&
         A1_Rec_Data[1] == A1_PACKET_HEADER_1)
@@ -351,7 +349,7 @@ void A1Motor_Smooth_Position_Control(A1Motor *motor, float target_position,
             elapsed_time_ms = total_time_ms;
         }
     }
-    if (Flag_Of_A1Motor_Smooth_Position_Control)//没有这个A1就会嗞哇乱叫
+    if (Flag_Of_A1Motor_Smooth_Position_Control) // 没有这个A1就会嗞哇乱叫
     {
         // 计算参考轨迹位置
         if (elapsed_time_ms >= total_time_ms)
@@ -404,9 +402,9 @@ void A1Motor_Smooth_Position_Control(A1Motor *motor, float target_position,
 //                                      uint32_t total_time_ms, float kw, float max_velocity)
 // {
 //     motor->command.kw = kw;   // 速度刚度系数
-    
+
 //     float error = target_position - motor->feedback.Position_Sum;
-    
+
 //     // 你要求的逻辑：差值大于0.1就最大速度，否则停止
 //     if (fabsf(error) > 0.1f)
 //     {
@@ -417,4 +415,3 @@ void A1Motor_Smooth_Position_Control(A1Motor *motor, float target_position,
 //         motor->command.velocity = 0;
 //     }
 // }
-
